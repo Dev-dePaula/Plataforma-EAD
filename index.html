@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EAD Premium - Painel</title>
+    <style>
+        :root {
+            --primary: #1a1a2e;
+            --secondary: #16213e;
+            --accent: #0f3460;
+            --highlight: #e94560;
+            --text-light: #ffffff;
+            --text-dark: #333;
+        }
+
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: #f4f7f6; color: var(--text-dark); }
+        .hidden { display: none !important; }
+
+        /* Login */
+        #login-screen {
+            display: flex; justify-content: center; align-items: center; height: 100vh;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+        }
+        .login-card {
+            background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            width: 100%; max-width: 380px; text-align: center;
+        }
+        .login-card h2 { margin-bottom: 20px; color: var(--primary); }
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
+        button { width: 100%; padding: 12px; background: var(--highlight); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s; margin-top: 10px; }
+        button:hover { opacity: 0.9; transform: translateY(-2px); }
+
+        /* Layout Dashboard */
+        .wrapper { display: flex; min-height: 100vh; }
+        
+        .sidebar { width: 260px; background: var(--primary); color: white; padding: 25px; display: flex; flex-direction: column; }
+        .sidebar h2 { color: var(--highlight); font-size: 1.4rem; margin-bottom: 40px; text-align: center; }
+        .nav-item { padding: 15px; cursor: pointer; border-radius: 8px; margin-bottom: 10px; transition: 0.2s; }
+        .nav-item:hover { background: var(--accent); }
+        .nav-active { background: var(--highlight) !important; }
+
+        .main-content { flex: 1; padding: 40px; overflow-y: auto; }
+        .card { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+
+        /* Grid de Cursos */
+        .course-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 25px; }
+        .course-card { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: 1px solid #eee; transition: 0.3s; }
+        .course-card:hover { transform: translateY(-5px); }
+        .course-card img { width: 100%; height: 170px; object-fit: cover; }
+        .course-info { padding: 20px; }
+        .course-info h3 { margin: 0 0 15px 0; font-size: 1.2rem; height: 3rem; overflow: hidden; }
+        
+        .admin-actions { display: flex; gap: 10px; margin-top: 15px; border-top: 1px solid #eee; padding-top: 15px; }
+        .btn-edit { background: #f39c12; flex: 1; padding: 8px; font-size: 0.8rem; }
+        .btn-del { background: #e74c3c; flex: 1; padding: 8px; font-size: 0.8rem; }
+        .btn-watch { background: var(--primary); width: 100%; }
+
+        /* Player */
+        .video-container { position: relative; padding-bottom: 56.25%; height: 0; background: #000; border-radius: 10px; overflow: hidden; }
+        .video-container iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        .back-btn { background: #95a5a6; width: auto; padding: 10px 20px; margin-bottom: 20px; }
+
+    </style>
+</head>
+<body>
+
+    <section id="login-screen">
+        <div class="login-card">
+            <h2>Portal do Aluno</h2>
+            <p style="font-size: 0.8rem; color: #666;">Admin: admin / 123 | Aluno: aluno / 123</p>
+            <input type="text" id="user" placeholder="Seu usuário">
+            <input type="password" id="pass" placeholder="Sua senha">
+            <button onclick="fazerLogin()">ACESSAR SISTEMA</button>
+        </div>
+    </section>
+
+    <section id="dash-screen" class="hidden">
+        <div class="wrapper">
+            <aside class="sidebar">
+                <h2 id="role-text">EAD SOL</h2>
+                <div class="nav-item nav-active" onclick="irParaTab('tab-home', this)">🏠 Meus Cursos</div>
+                <div id="menu-admin" class="nav-item hidden" onclick="abrirModalCadastro(this)">➕ Cadastrar Aula</div>
+                <div class="nav-item" style="margin-top: auto;" onclick="location.reload()">🚪 Sair</div>
+            </aside>
+
+            <main class="main-content">
+                <div id="tab-home" class="tab-content">
+                    <h1>Seus Cursos e Aulas</h1>
+                    <div class="course-grid" id="container-cursos">
+                        </div>
+                </div>
+
+                <div id="tab-form" class="tab-content hidden">
+                    <h1 id="form-title">Cadastrar Novo Conteúdo</h1>
+                    <div class="card" style="max-width: 600px;">
+                        <input type="hidden" id="edit-id">
+                        <label>Título da Aula/Curso:</label>
+                        <input type="text" id="input-nome" placeholder="Ex: Aula 01 - Introdução">
+                        <label>Link do Vídeo (YouTube):</label>
+                        <input type="text" id="input-url" placeholder="Cole o link do vídeo aqui">
+                        <button onclick="salvarCurso()" style="background: #27ae60;">SALVAR DADOS</button>
+                        <button onclick="irParaTab('tab-home')" style="background: #7f8c8d;">CANCELAR</button>
+                    </div>
+                </div>
+
+                <div id="tab-player" class="tab-content hidden">
+                    <button class="back-btn" onclick="irParaTab('tab-home')">⬅ Voltar para Lista</button>
+                    <div class="card">
+                        <h2 id="view-titulo" style="margin-top:0">Título da Aula</h2>
+                        <div class="video-container">
+                            <iframe id="video-iframe" src="" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </section>
+
+    <script>
+        // Simulação de Banco de Dados
+        let db_cursos = JSON.parse(localStorage.getItem('ead_cursos')) || [];
+        let userType = "";
+
+        function fazerLogin() {
+            const u = document.getElementById('user').value.toLowerCase();
+            const p = document.getElementById('pass').value;
+
+            if(p === '123' && (u === 'admin' || u === 'aluno')) {
+                userType = u;
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('dash-screen').classList.remove('hidden');
+                
+                if(u === 'admin') {
+                    document.getElementById('menu-admin').classList.remove('hidden');
+                    document.getElementById('role-text').innerText = "PAINEL ADMIN";
+                }
+                renderizarCursos();
+            } else {
+                alert('Usuário ou senha incorretos!');
+            }
+        }
+
+        // Função crucial para corrigir o link do YouTube
+        function formatarLink(url) {
+            let id = "";
+            if(url.includes("v=")) id = url.split("v=")[1].split("&")[0];
+            else if(url.includes("youtu.be/")) id = url.split("youtu.be/")[1].split("?")[0];
+            else if(url.includes("embed/")) id = url.split("embed/")[1].split("?")[0];
+            else id = url;
+
+            // Retorna o formato correto com parâmetros de segurança
+            return `https://www.youtube.com/embed/${id}?enablejsapi=1&rel=0&origin=${window.location.origin}`;
+        }
+
+        function renderizarCursos() {
+            const grid = document.getElementById('container-cursos');
+            grid.innerHTML = db_cursos.length === 0 ? '<p>Nenhum curso cadastrado ainda.</p>' : '';
+
+            db_cursos.forEach((item, index) => {
+                const videoId = item.url.split('/').pop().split('?')[0];
+                const thumb = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+
+                let htmlAdmin = userType === 'admin' ? `
+                    <div class="admin-actions">
+                        <button class="btn-edit" onclick="abrirEdicao(${index})">Editar</button>
+                        <button class="btn-del" onclick="deletarCurso(${index})">Excluir</button>
+                    </div>
+                ` : "";
+
+                grid.innerHTML += `
+                    <div class="course-card">
+                        <img src="${thumb}" onerror="this.src='https://via.placeholder.com/300x170?text=Video+Indisponivel'">
+                        <div class="course-info">
+                            <h3>${item.nome}</h3>
+                            <button class="btn-watch" onclick="assistir('${item.url}', '${item.nome}')">ASSISTIR AGORA</button>
+                            ${htmlAdmin}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function salvarCurso() {
+            const nome = document.getElementById('input-nome').value;
+            const urlRaw = document.getElementById('input-url').value;
+            const id = document.getElementById('edit-id').value;
+
+            if(!nome || !urlRaw) return alert("Preencha todos os campos!");
+
+            const cursoFormatado = { nome, url: formatarLink(urlRaw) };
+
+            if(id === "") {
+                db_cursos.push(cursoFormatado);
+            } else {
+                db_cursos[id] = cursoFormatado;
+            }
+
+            localStorage.setItem('ead_cursos', JSON.stringify(db_cursos));
+            irParaTab('tab-home');
+            renderizarCursos();
+        }
+
+        function abrirModalCadastro(el) {
+            document.getElementById('form-title').innerText = "Cadastrar Novo Conteúdo";
+            document.getElementById('edit-id').value = "";
+            document.getElementById('input-nome').value = "";
+            document.getElementById('input-url').value = "";
+            irParaTab('tab-form', el);
+        }
+
+        function abrirEdicao(index) {
+            const curso = db_cursos[index];
+            document.getElementById('form-title').innerText = "Editando: " + curso.nome;
+            document.getElementById('edit-id').value = index;
+            document.getElementById('input-nome').value = curso.nome;
+            document.getElementById('input-url').value = curso.url;
+            irParaTab('tab-form');
+        }
+
+        function deletarCurso(index) {
+            if(confirm("Tem certeza que deseja excluir esta aula?")) {
+                db_cursos.splice(index, 1);
+                localStorage.setItem('ead_cursos', JSON.stringify(db_cursos));
+                renderizarCursos();
+            }
+        }
+
+        function assistir(url, titulo) {
+            document.getElementById('view-titulo').innerText = titulo;
+            document.getElementById('video-iframe').src = url;
+            irParaTab('tab-player');
+        }
+
+        function irParaTab(tabId, el) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
+            document.getElementById(tabId).classList.remove('hidden');
+            
+            if(el) {
+                document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('nav-active'));
+                el.classList.add('nav-active');
+            }
+        }
+    </script>
+</body>
+</html>
