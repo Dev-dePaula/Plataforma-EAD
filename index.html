@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Educadq - Gestão EAD</title>
+    <title>Educadq - Gestão EAD Pro</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     
     <style>
-        :root { --primary: #0f3460; --accent: #e94560; --success: #27ae60; --bg: #f4f7f6; --white: #fff; }
+        :root { --primary: #0f3460; --accent: #e94560; --success: #27ae60; --danger: #c0392b; --bg: #f4f7f6; --white: #fff; }
         body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); color: #333; }
         .hidden { display: none !important; }
         .wrapper { display: flex; min-height: 100vh; }
@@ -22,6 +22,7 @@
         .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; margin: 5px 0; }
         .btn-success { background: var(--success); }
         .btn-accent { background: var(--accent); }
+        .btn-danger { background: var(--danger); font-size: 12px; padding: 5px 10px; }
         .btn-disabled { background: #999; cursor: not-allowed; }
         input, select { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
@@ -107,12 +108,11 @@
                     <h1>Gerenciar Alunos</h1>
                     <div class="card" style="max-width: 500px;">
                         <h3>➕ Cadastrar Novo Aluno</h3>
-                        <input type="text" id="new-aluno-nome" placeholder="Nome Completo do Aluno">
+                        <input type="text" id="new-aluno-nome" placeholder="Nome Completo">
                         <input type="email" id="new-aluno-email" placeholder="E-mail">
-                        <input type="password" id="new-aluno-pass" placeholder="Defina uma Senha">
+                        <input type="password" id="new-aluno-pass" placeholder="Senha (mínimo 6 caracteres)">
                         <button class="btn btn-success" onclick="cadastrarAlunoFirebase()">CADASTRAR ALUNO</button>
                     </div>
-                    
                     <div class="card">
                         <h3>Alunos Cadastrados</h3>
                         <table id="tabela-alunos">
@@ -123,19 +123,26 @@
                 </div>
 
                 <div id="tab-adm-cursos" class="tab-content hidden">
-                    <h1>Configurar Cursos</h1>
+                    <h1>Configurar Cursos e Aulas</h1>
                     <div class="card">
-                        <h3>1. Novo Curso</h3>
+                        <h3>1. Gerenciar Cursos</h3>
                         <input type="text" id="adm-c-nome" placeholder="Nome do Curso">
                         <input type="text" id="adm-c-capa" placeholder="URL da Foto de Capa">
-                        <button class="btn btn-success" onclick="admCriarCurso()">Salvar Curso</button>
+                        <button class="btn btn-success" onclick="admCriarCurso()">Salvar Novo Curso</button>
                     </div>
                     <div class="card">
-                        <h3>2. Adicionar Aula</h3>
-                        <select id="select-cursos-aulas"></select>
+                        <h3>2. Adicionar/Excluir Aulas</h3>
+                        <select id="select-cursos-aulas" onchange="listarAulasParaExcluir(this.value)">
+                            <option value="">Selecione um curso para ver as aulas...</option>
+                        </select>
+                        <hr>
                         <input type="text" id="adm-a-nome" placeholder="Título da Aula">
                         <input type="text" id="adm-a-url" placeholder="Link do YouTube">
                         <button class="btn btn-success" onclick="admSalvarAula()">Vincular Aula</button>
+                        
+                        <h4>Aulas atuais deste curso:</h4>
+                        <div id="lista-aulas-admin">
+                            </div>
                     </div>
                 </div>
 
@@ -197,56 +204,62 @@
             });
         }
 
-        // --- FUNÇÃO PARA CADASTRAR ALUNO PELO DASHBOARD ---
+        // --- EXCLUIR AULA (NOVO) ---
+        function listarAulasParaExcluir(cursoId) {
+            const container = document.getElementById('lista-aulas-admin');
+            container.innerHTML = "";
+            if(!cursoId || !cursosData[cursoId] || !cursosData[cursoId].aulas) {
+                container.innerHTML = "<p>Sem aulas cadastradas.</p>";
+                return;
+            }
+            const aulas = cursosData[cursoId].aulas;
+            Object.keys(aulas).forEach(aId => {
+                container.innerHTML += `
+                    <div style="display:flex; justify-content:space-between; align-items:center; background:#eee; padding:10px; margin-bottom:5px; border-radius:5px;">
+                        <span>${aulas[aId].nome}</span>
+                        <button class="btn btn-danger" onclick="excluirAula('${cursoId}', '${aId}')">Excluir</button>
+                    </div>`;
+            });
+        }
+
+        function excluirAula(cursoId, aulaId) {
+            if(confirm("Tem certeza que deseja excluir esta aula?")) {
+                db.ref(`cursos/${cursoId}/aulas/${aulaId}`).remove().then(() => {
+                    alert("Aula excluída!");
+                    listarAulasParaExcluir(cursoId);
+                });
+            }
+        }
+
+        // --- CADASTRAR ALUNO ---
         async function cadastrarAlunoFirebase() {
             const nome = document.getElementById('new-aluno-nome').value;
             const email = document.getElementById('new-aluno-email').value;
             const pass = document.getElementById('new-aluno-pass').value;
-
-            if(!nome || !email || !pass) return alert("Preencha todos os campos do aluno!");
-
-            // Criamos uma segunda instância do Firebase Auth temporária para não deslogar o admin
-            const secondaryApp = firebase.initializeApp(firebaseConfig, "Secondary");
+            if(!nome || !email || !pass) return alert("Preencha tudo!");
             
+            const secondaryApp = firebase.initializeApp(firebaseConfig, "Secondary");
             try {
                 const userCredential = await secondaryApp.auth().createUserWithEmailAndPassword(email, pass);
-                const uid = userCredential.user.uid;
-
-                // Salva no banco de dados
-                await db.ref('usuarios/' + uid).set({
-                    nome: nome,
-                    email: email,
-                    role: 'aluno',
-                    progresso: {},
-                    notas: {}
-                });
-
-                alert("Aluno cadastrado com sucesso!");
-                document.getElementById('new-aluno-nome').value = "";
-                document.getElementById('new-aluno-email').value = "";
-                document.getElementById('new-aluno-pass').value = "";
-                abrirGerenciarAlunos();
-                
+                await db.ref('usuarios/' + userCredential.user.uid).set({ nome, email, role: 'aluno', progresso: {}, notas: {} });
+                alert("Aluno cadastrado!");
                 await secondaryApp.delete();
-            } catch (error) {
-                alert("Erro ao cadastrar: " + error.message);
-            }
+                abrirGerenciarAlunos();
+            } catch (e) { alert(e.message); }
         }
 
         function abrirGerenciarAlunos() {
             db.ref('usuarios').once('value', snap => {
                 const corpo = document.getElementById('lista-usuarios-corpo'); corpo.innerHTML = "";
                 const us = snap.val();
-                if(us) {
-                    Object.keys(us).forEach(id => {
-                        corpo.innerHTML += `<tr><td>${us[id].nome}</td><td>${us[id].email}</td><td>${us[id].role}</td></tr>`;
-                    });
-                }
+                if(us) Object.keys(us).forEach(id => {
+                    corpo.innerHTML += `<tr><td>${us[id].nome}</td><td>${us[id].email}</td><td>${us[id].role}</td></tr>`;
+                });
                 showTab('tab-adm-alunos');
             });
         }
 
-        // --- RESTANTE DAS FUNÇÕES ---
+        // --- RENDERIZACAO ---
         function renderHome() {
             const grid = document.getElementById('grid-cursos'); grid.innerHTML = "";
             Object.keys(cursosData).forEach(id => {
@@ -296,7 +309,7 @@
         }
 
         function mostrarProva(id) {
-            const qs = cursosData[id].questoes; if(!qs) return alert("Prova não cadastrada.");
+            const qs = cursosData[id].questoes; if(!qs) return alert("Sem prova.");
             const cont = document.getElementById('questoes-container'); cont.innerHTML = "";
             Object.keys(qs).forEach((qId, idx) => {
                 cont.innerHTML += `<div class="card"><p><strong>${idx+1}. ${qs[qId].pergunta}</strong></p>
@@ -331,8 +344,12 @@
         function admSalvarAula() {
             const cId = document.getElementById('select-cursos-aulas').value; const n = document.getElementById('adm-a-nome').value;
             let u = document.getElementById('adm-a-url').value;
+            if(!cId || !n || !u) return alert("Preencha tudo!");
             let idV = u.includes("v=") ? u.split("v=")[1].split("&")[0] : u.split("/").pop();
-            db.ref('cursos/' + cId + '/aulas').push({nome: n, url: `https://www.youtube.com/embed/${idV}`});
+            db.ref('cursos/' + cId + '/aulas').push({nome: n, url: `https://www.youtube.com/embed/${idV}`}).then(() => {
+                alert("Aula adicionada!");
+                listarAulasParaExcluir(cId);
+            });
         }
 
         function admSalvarQuestao() {
@@ -343,7 +360,8 @@
 
         function renderSelects() {
             const s1 = document.getElementById('select-cursos-aulas'); const s2 = document.getElementById('select-cursos-provas');
-            s1.innerHTML = s2.innerHTML = ""; Object.keys(cursosData).forEach(id => { const o = `<option value="${id}">${cursosData[id].nome}</option>`; s1.innerHTML += o; s2.innerHTML += o; });
+            s1.innerHTML = "<option value=''>Selecione um curso...</option>"; s2.innerHTML = "";
+            Object.keys(cursosData).forEach(id => { const o = `<option value="${id}">${cursosData[id].nome}</option>`; s1.innerHTML += o; s2.innerHTML += o; });
         }
 
         function showTab(id) { document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden')); document.getElementById(id).classList.remove('hidden'); }
