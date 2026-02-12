@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Educadq - Centro de Formação Profissional</title>
+    <title>Educadq - EAD Profissional</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
@@ -19,15 +19,13 @@
         .nav-item { padding: 12px; cursor: pointer; border-radius: 6px; margin-bottom: 5px; transition: 0.3s; }
         .nav-item:hover, .active { background: var(--accent); }
         .card { background: var(--white); padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; margin: 5px 0; }
+        .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; margin: 5px 0; display: inline-block; text-decoration: none; }
         .btn-success { background: var(--success); }
         .btn-accent { background: var(--accent); }
         .btn-disabled { background: #999; cursor: not-allowed; }
         input, select { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
         
-        /* Certificado */
         #printable-certificate { width: 800px; padding: 50px; border: 15px double var(--primary); background: white; text-align: center; margin: 20px auto; }
-        .cert-header { color: var(--primary); border-bottom: 2px solid var(--accent); padding-bottom: 15px; }
         @media print { body * { visibility: hidden; } #printable-certificate, #printable-certificate * { visibility: visible; } #printable-certificate { position: absolute; left: 0; top: 0; } }
     </style>
 </head>
@@ -36,8 +34,8 @@
     <section id="login-screen" style="display:flex; justify-content:center; align-items:center; height:100vh; background:var(--primary)">
         <div class="card" style="width:350px; text-align:center">
             <h2 style="color:var(--primary)">EDUCADQ EAD</h2>
-            <input type="email" id="email-login" placeholder="E-mail">
-            <input type="password" id="pass-login" placeholder="Senha">
+            <input type="email" id="email-login" placeholder="Seu e-mail">
+            <input type="password" id="pass-login" placeholder="Sua senha">
             <button class="btn btn-accent" style="width:100%" onclick="login()">ENTRAR</button>
         </div>
     </section>
@@ -90,26 +88,28 @@
                     <button class="btn btn-accent" onclick="showTab('tab-grade')">⬅ Voltar</button>
                     <button class="btn btn-success" onclick="window.print()">🖨️ Imprimir</button>
                     <div id="printable-certificate">
-                        <div class="cert-header">
+                        <div style="color:var(--primary); border-bottom:2px solid var(--accent); padding-bottom:15px; margin-bottom:20px;">
                             <h2>Centro de Formação Educadq</h2>
                             <p>CNPJ: 50.062.731/0001-30 | Pontal do Paraná, PR</p>
                         </div>
                         <p>Certificamos que o aluno(a)</p>
-                        <h1 id="cert-nome-aluno" style="color:var(--accent)">NOME</h1>
+                        <h1 id="cert-nome-aluno" style="color:var(--accent)">...</h1>
                         <p>concluiu o treinamento de</p>
-                        <h2 id="cert-curso-nome" style="color:var(--primary)">CURSO</h2>
+                        <h2 id="cert-curso-nome" style="color:var(--primary)">...</h2>
                         <div style="margin-top:50px; border-top:1px solid #333; display:inline-block; width:250px">Direção Educadq</div>
                     </div>
                 </div>
 
                 <div id="tab-adm-cursos" class="tab-content hidden">
-                    <h1>Admin: Cursos</h1>
+                    <h1>Painel Admin - Conteúdo</h1>
                     <div class="card">
+                        <h3>Criar Curso</h3>
                         <input type="text" id="adm-c-nome" placeholder="Nome do Curso">
-                        <input type="text" id="adm-c-capa" placeholder="Link da Capa">
+                        <input type="text" id="adm-c-capa" placeholder="URL da Capa">
                         <button class="btn btn-success" onclick="admCriarCurso()">Salvar Curso</button>
                     </div>
                     <div class="card">
+                        <h3>Vincular Aula</h3>
                         <select id="select-cursos-aulas"></select>
                         <input type="text" id="adm-a-nome" placeholder="Título da Aula">
                         <input type="text" id="adm-a-url" placeholder="Link YouTube">
@@ -122,8 +122,12 @@
                     <div class="card">
                         <select id="select-cursos-provas"></select>
                         <input type="text" id="adm-q" placeholder="Pergunta">
-                        <input type="text" id="opt0" placeholder="A"> <input type="text" id="opt1" placeholder="B"> <input type="text" id="opt2" placeholder="C">
-                        <select id="adm-correta"><option value="0">A</option><option value="1">B</option><option value="2">C</option></select>
+                        <input type="text" id="opt0" placeholder="A"> 
+                        <input type="text" id="opt1" placeholder="B"> 
+                        <input type="text" id="opt2" placeholder="C">
+                        <select id="adm-correta">
+                            <option value="0">A</option><option value="1">B</option><option value="2">C</option>
+                        </select>
                         <button class="btn btn-success" onclick="admSalvarQuestao()">Salvar Questão</button>
                     </div>
                 </div>
@@ -132,7 +136,7 @@
     </section>
 
     <script>
-        // CONFIGURAÇÃO COM SEUS DADOS
+        // CONFIGURAÇÃO FIREBASE
         const firebaseConfig = {
             apiKey: "AIzaSyBtshykteNPifgHzy8iBSYPEmNfERZqZ8A",
             authDomain: "educadq-ead.firebaseapp.com",
@@ -147,14 +151,17 @@
         const db = firebase.database();
         const auth = firebase.auth();
 
-        let userData = null; let cursosData = {}; let cursoAtualId = null;
+        let userData = null; 
+        let cursosData = {}; 
+        let cursoAtualId = null;
 
         function login() {
             const email = document.getElementById('email-login').value;
             const pass = document.getElementById('pass-login').value;
-            auth.signInWithEmailAndPassword(email, pass).catch(e => alert(e.message));
+            auth.signInWithEmailAndPassword(email, pass).catch(e => alert("Erro ao entrar: " + e.message));
         }
 
+        // Monitor de Autenticação
         auth.onAuthStateChanged(user => {
             if(user) {
                 document.getElementById('login-screen').classList.add('hidden');
@@ -164,45 +171,80 @@
         });
 
         function carregarTudo(uid) {
-            db.ref('cursos').on('value', snap => { cursosData = snap.val() || {}; renderHome(); renderSelects(); });
+            // Escuta cursos
+            db.ref('cursos').on('value', snap => { 
+                cursosData = snap.val() || {}; 
+                renderHome(); 
+                renderSelects(); 
+            });
+
+            // Escuta dados do usuário logado
             db.ref('usuarios/' + uid).on('value', snap => {
-                userData = snap.val() || { nome: auth.currentUser.email.split('@')[0], role: 'aluno', progresso: {}, notas: {} };
-                if(!snap.val()) db.ref('usuarios/' + uid).set(userData);
+                const data = snap.val();
+                if(!data) {
+                    // Cria perfil se não existir
+                    userData = { nome: auth.currentUser.email.split('@')[0], role: 'aluno', progresso: {}, notas: {} };
+                    db.ref('usuarios/' + uid).set(userData);
+                } else {
+                    userData = data;
+                }
+                
                 document.getElementById('user-display').innerText = "Olá, " + userData.nome;
-                if(userData.role === 'admin') document.getElementById('admin-tools').classList.remove('hidden');
+                
+                // Libera painel admin se for admin
+                if(userData.role === 'admin') {
+                    document.getElementById('admin-tools').classList.remove('hidden');
+                } else {
+                    document.getElementById('admin-tools').classList.add('hidden');
+                }
             });
         }
 
         function renderHome() {
-            const grid = document.getElementById('grid-cursos'); grid.innerHTML = "";
+            const grid = document.getElementById('grid-cursos'); 
+            grid.innerHTML = "";
             Object.keys(cursosData).forEach(id => {
-                grid.innerHTML += `<div class="card" onclick="abrirGrade('${id}')" style="cursor:pointer">
+                grid.innerHTML += `
+                <div class="card" onclick="abrirGrade('${id}')" style="cursor:pointer">
                     <img src="${cursosData[id].capa}" width="100%" height="150" style="object-fit:cover; border-radius:8px">
-                    <h3>${cursosData[id].nome}</h3></div>`;
+                    <h3>${cursosData[id].nome}</h3>
+                </div>`;
             });
         }
 
         function abrirGrade(id) {
-            cursoAtualId = id; const curso = cursosData[id];
+            cursoAtualId = id; 
+            const curso = cursosData[id];
             document.getElementById('grade-titulo').innerText = curso.nome;
-            const lista = document.getElementById('lista-aulas'); lista.innerHTML = "";
-            const aulas = curso.aulas || {}; const keys = Object.keys(aulas);
-            const concluidas = (userData.progresso && userData.progresso[id]) || [];
+            const lista = document.getElementById('lista-aulas'); 
+            lista.innerHTML = "";
+            
+            const aulas = curso.aulas || {}; 
+            const keys = Object.keys(aulas);
+            const concluidas = (userData.progresso && userData.progresso[id]) ? Object.values(userData.progresso[id]) : [];
 
             keys.forEach((aId, idx) => {
                 const icon = concluidas.includes(aId) ? "✅" : "⭕";
-                lista.innerHTML += `<div class="card" style="display:flex; justify-content:space-between; align-items:center">
+                lista.innerHTML += `
+                <div class="card" style="display:flex; justify-content:space-between; align-items:center">
                     <span>${icon} Aula ${idx+1}: ${aulas[aId].nome}</span>
-                    <button class="btn btn-success" onclick="assistir('${aId}')">Assistir</button></div>`;
+                    <button class="btn btn-success" onclick="assistir('${aId}')">Assistir</button>
+                </div>`;
             });
 
             const btnP = document.getElementById('btn-fazer-prova');
-            if(keys.length > 0 && concluidas.length === keys.length) {
+            if(keys.length > 0 && concluidas.length >= keys.length) {
                 btnP.disabled = false; btnP.className = "btn btn-accent";
                 btnP.onclick = () => mostrarProva(id);
+            } else {
+                btnP.disabled = true; btnP.className = "btn btn-disabled";
             }
+
+            const certArea = document.getElementById('btn-cert-area');
             if(userData.notas && userData.notas[id] >= 70) {
-                document.getElementById('btn-cert-area').innerHTML = `<button class="btn btn-success" onclick="verCertificado('${id}')">GERAR CERTIFICADO</button>`;
+                certArea.innerHTML = `<button class="btn btn-success" onclick="verCertificado('${id}')">GERAR CERTIFICADO</button>`;
+            } else {
+                certArea.innerHTML = "";
             }
             showTab('tab-grade');
         }
@@ -212,35 +254,48 @@
             document.getElementById('player-titulo').innerText = aula.nome;
             document.getElementById('video-frame').src = aula.url;
             document.getElementById('btn-check-aula').onclick = () => {
-                let prog = userData.progresso[cursoAtualId] || [];
-                if(!prog.includes(aId)) prog.push(aId);
-                db.ref('usuarios/' + auth.currentUser.uid + '/progresso/' + cursoAtualId).set(prog);
-                abrirGrade(cursoAtualId);
+                let progRef = db.ref('usuarios/' + auth.currentUser.uid + '/progresso/' + cursoAtualId);
+                progRef.get().then(snap => {
+                    let prog = snap.val() || [];
+                    if(!prog.includes(aId)) prog.push(aId);
+                    progRef.set(prog).then(() => {
+                        alert("Aula Concluída!");
+                        abrirGrade(cursoAtualId);
+                    });
+                });
             };
             showTab('tab-player');
         }
 
         function mostrarProva(id) {
             const questoes = cursosData[id].questoes;
-            if(!questoes) return alert("Sem prova cadastrada.");
-            const container = document.getElementById('questoes-container'); container.innerHTML = "";
+            if(!questoes) return alert("Prova ainda não disponível.");
+            const container = document.getElementById('questoes-container'); 
+            container.innerHTML = "";
             Object.keys(questoes).forEach((qId, idx) => {
                 const q = questoes[qId];
-                container.innerHTML += `<div class="card"><p><strong>${idx+1}. ${q.pergunta}</strong></p>
-                    ${q.opts.map((o, i) => `<label style="display:block"><input type="radio" name="q${qId}" value="${i}"> ${o}</label>`).join('')}</div>`;
+                container.innerHTML += `
+                <div class="card">
+                    <p><strong>${idx+1}. ${q.pergunta}</strong></p>
+                    ${q.opts.map((o, i) => `<label style="display:block"><input type="radio" name="q${qId}" value="${i}"> ${o}</label>`).join('')}
+                </div>`;
             });
             showTab('tab-prova');
         }
 
         function corrigirProva() {
-            const questoes = cursosData[cursoAtualId].questoes; let acertos = 0; const ids = Object.keys(questoes);
+            const questoes = cursosData[cursoAtualId].questoes; 
+            let acertos = 0; 
+            const ids = Object.keys(questoes);
             ids.forEach(id => {
                 const sel = document.querySelector(`input[name="q${id}"]:checked`);
                 if(sel && sel.value == questoes[id].correta) acertos++;
             });
             const nota = (acertos / ids.length) * 100;
-            db.ref('usuarios/' + auth.currentUser.uid + '/notas/' + cursoAtualId).set(nota);
-            alert("Sua nota: " + nota.toFixed(0) + "%"); abrirGrade(cursoAtualId);
+            db.ref('usuarios/' + auth.currentUser.uid + '/notas/' + cursoAtualId).set(nota).then(() => {
+                alert("Nota final: " + nota.toFixed(0) + "%");
+                abrirGrade(cursoAtualId);
+            });
         }
 
         function verCertificado(id) {
@@ -249,22 +304,46 @@
             showTab('tab-cert');
         }
 
-        function admCriarCurso() { const nome = document.getElementById('adm-c-nome').value; const capa = document.getElementById('adm-c-capa').value; db.ref('cursos').push({nome, capa}); }
+        // FUNÇÕES ADMIN
+        function admCriarCurso() { 
+            const nome = document.getElementById('adm-c-nome').value; 
+            const capa = document.getElementById('adm-c-capa').value; 
+            if(nome && capa) db.ref('cursos').push({nome, capa}); 
+        }
+
         function admSalvarAula() {
-            const cId = document.getElementById('select-cursos-aulas').value; const nome = document.getElementById('adm-a-nome').value; let url = document.getElementById('adm-a-url').value;
+            const cId = document.getElementById('select-cursos-aulas').value; 
+            const nome = document.getElementById('adm-a-nome').value; 
+            let url = document.getElementById('adm-a-url').value;
             let idV = url.includes("v=") ? url.split("v=")[1].split("&")[0] : url.split("/").pop();
             db.ref('cursos/' + cId + '/aulas').push({nome, url: `https://www.youtube.com/embed/${idV}`});
         }
+
         function admSalvarQuestao() {
             const cId = document.getElementById('select-cursos-provas').value;
-            const q = { pergunta: document.getElementById('adm-q').value, opts: [document.getElementById('opt0').value, document.getElementById('opt1').value, document.getElementById('opt2').value], correta: document.getElementById('adm-correta').value };
-            db.ref('cursos/' + cId + '/questoes').push(q); alert("Questão salva!");
+            const q = { 
+                pergunta: document.getElementById('adm-q').value, 
+                opts: [document.getElementById('opt0').value, document.getElementById('opt1').value, document.getElementById('opt2').value], 
+                correta: document.getElementById('adm-correta').value 
+            };
+            db.ref('cursos/' + cId + '/questoes').push(q); 
+            alert("Questão salva!");
         }
+
         function renderSelects() {
-            const s1 = document.getElementById('select-cursos-aulas'); const s2 = document.getElementById('select-cursos-provas');
-            s1.innerHTML = s2.innerHTML = ""; Object.keys(cursosData).forEach(id => { const opt = `<option value="${id}">${cursosData[id].nome}</option>`; s1.innerHTML += opt; s2.innerHTML += opt; });
+            const s1 = document.getElementById('select-cursos-aulas'); 
+            const s2 = document.getElementById('select-cursos-provas');
+            s1.innerHTML = s2.innerHTML = ""; 
+            Object.keys(cursosData).forEach(id => { 
+                const opt = `<option value="${id}">${cursosData[id].nome}</option>`; 
+                s1.innerHTML += opt; s2.innerHTML += opt; 
+            });
         }
-        function showTab(id) { document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden')); document.getElementById(id).classList.remove('hidden'); }
+
+        function showTab(id) { 
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden')); 
+            document.getElementById(id).classList.remove('hidden'); 
+        }
     </script>
 </body>
 </html>
