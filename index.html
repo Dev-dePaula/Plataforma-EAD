@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Educadq - EAD Profissional</title>
+    <title>Educadq - Plataforma de Ensino</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
@@ -19,14 +19,16 @@
         .nav-item { padding: 12px; cursor: pointer; border-radius: 6px; margin-bottom: 5px; transition: 0.3s; }
         .nav-item:hover, .active { background: var(--accent); }
         .card { background: var(--white); padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; margin: 5px 0; display: inline-block; text-decoration: none; }
+        .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; margin: 5px 0; display: inline-block; }
         .btn-success { background: var(--success); }
         .btn-accent { background: var(--accent); }
         .btn-disabled { background: #999; cursor: not-allowed; }
         input, select { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
         
-        #printable-certificate { width: 800px; padding: 50px; border: 15px double var(--primary); background: white; text-align: center; margin: 20px auto; }
-        @media print { body * { visibility: hidden; } #printable-certificate, #printable-certificate * { visibility: visible; } #printable-certificate { position: absolute; left: 0; top: 0; } }
+        #printable-certificate { width: 750px; padding: 50px; border: 15px double var(--primary); background: white; text-align: center; margin: 20px auto; }
+        @media print { body * { visibility: hidden; } #printable-certificate, #printable-certificate * { visibility: visible; } #printable-certificate { position: absolute; left: 0; top: 0; width: 100%; } }
     </style>
 </head>
 <body>
@@ -34,9 +36,9 @@
     <section id="login-screen" style="display:flex; justify-content:center; align-items:center; height:100vh; background:var(--primary)">
         <div class="card" style="width:350px; text-align:center">
             <h2 style="color:var(--primary)">EDUCADQ EAD</h2>
-            <input type="email" id="email-login" placeholder="Seu e-mail">
-            <input type="password" id="pass-login" placeholder="Sua senha">
-            <button class="btn btn-accent" style="width:100%" onclick="login()">ENTRAR</button>
+            <input type="email" id="email-login" placeholder="E-mail do Aluno">
+            <input type="password" id="pass-login" placeholder="Senha">
+            <button class="btn btn-accent" style="width:100%" onclick="login()">ENTRAR NO PORTAL</button>
         </div>
     </section>
 
@@ -47,10 +49,11 @@
                 <div class="nav-item active" onclick="showTab('tab-cursos')">📚 Meus Cursos</div>
                 <div id="admin-tools" class="hidden">
                     <hr>
-                    <div class="nav-item" onclick="showTab('tab-adm-cursos')">⚙️ Cursos/Aulas</div>
+                    <div class="nav-item" onclick="showTab('tab-adm-cursos')">⚙️ Cursos e Aulas</div>
                     <div class="nav-item" onclick="showTab('tab-adm-provas')">📝 Gerar Provas</div>
+                    <div class="nav-item" onclick="abrirGerenciarAlunos()">👥 Gerenciar Alunos</div>
                 </div>
-                <div class="nav-item" style="margin-top:20px" onclick="auth.signOut(); location.reload();">🚪 Sair</div>
+                <div class="nav-item" style="margin-top:20px; opacity: 0.8" onclick="auth.signOut(); location.reload();">🚪 Sair</div>
             </nav>
 
             <main class="main">
@@ -75,59 +78,67 @@
                     <div class="card" style="padding:0; overflow:hidden">
                         <iframe id="video-frame" width="100%" height="450" frameborder="0" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
                     </div>
-                    <button id="btn-check-aula" class="btn btn-success" style="width:100%">Marcar como Concluída ✅</button>
+                    <button id="btn-check-aula" class="btn btn-success" style="width:100%">Concluir esta Aula ✅</button>
                 </div>
 
                 <div id="tab-prova" class="tab-content hidden">
                     <h1 id="prova-titulo">Avaliação</h1>
                     <div id="questoes-container"></div>
-                    <button class="btn btn-success" style="width:100%" onclick="corrigirProva()">Finalizar Prova</button>
+                    <button class="btn btn-success" style="width:100%" onclick="corrigirProva()">Finalizar e Enviar</button>
                 </div>
 
                 <div id="tab-cert" class="tab-content hidden">
                     <button class="btn btn-accent" onclick="showTab('tab-grade')">⬅ Voltar</button>
-                    <button class="btn btn-success" onclick="window.print()">🖨️ Imprimir</button>
+                    <button class="btn btn-success" onclick="window.print()">🖨️ Imprimir Certificado</button>
                     <div id="printable-certificate">
-                        <div style="color:var(--primary); border-bottom:2px solid var(--accent); padding-bottom:15px; margin-bottom:20px;">
+                        <div style="border-bottom: 2px solid var(--accent); padding-bottom: 15px; margin-bottom: 20px;">
                             <h2>Centro de Formação Educadq</h2>
                             <p>CNPJ: 50.062.731/0001-30 | Pontal do Paraná, PR</p>
                         </div>
-                        <p>Certificamos que o aluno(a)</p>
-                        <h1 id="cert-nome-aluno" style="color:var(--accent)">...</h1>
-                        <p>concluiu o treinamento de</p>
-                        <h2 id="cert-curso-nome" style="color:var(--primary)">...</h2>
-                        <div style="margin-top:50px; border-top:1px solid #333; display:inline-block; width:250px">Direção Educadq</div>
+                        <p>Certificamos que</p>
+                        <h1 id="cert-nome-aluno" style="color:var(--accent); font-size: 35px;">NOME</h1>
+                        <p>concluiu com êxito o treinamento de</p>
+                        <h2 id="cert-curso-nome" style="color:var(--primary)">NOME DO CURSO</h2>
+                        <div style="margin-top:60px; border-top:1px solid #333; display:inline-block; width:280px">Direção Educadq</div>
+                    </div>
+                </div>
+
+                <div id="tab-adm-alunos" class="tab-content hidden">
+                    <h1>Alunos no Sistema</h1>
+                    <div class="card">
+                        <table id="tabela-alunos">
+                            <thead>
+                                <tr><th>Nome</th><th>E-mail</th><th>Status</th><th>Ações</th></tr>
+                            </thead>
+                            <tbody id="lista-usuarios-corpo"></tbody>
+                        </table>
                     </div>
                 </div>
 
                 <div id="tab-adm-cursos" class="tab-content hidden">
-                    <h1>Painel Admin - Conteúdo</h1>
+                    <h1>Configurar Cursos</h1>
                     <div class="card">
-                        <h3>Criar Curso</h3>
+                        <h3>1. Novo Curso</h3>
                         <input type="text" id="adm-c-nome" placeholder="Nome do Curso">
-                        <input type="text" id="adm-c-capa" placeholder="URL da Capa">
-                        <button class="btn btn-success" onclick="admCriarCurso()">Salvar Curso</button>
+                        <input type="text" id="adm-c-capa" placeholder="URL da Foto de Capa">
+                        <button class="btn btn-success" onclick="admCriarCurso()">Criar Curso</button>
                     </div>
                     <div class="card">
-                        <h3>Vincular Aula</h3>
+                        <h3>2. Adicionar Aula</h3>
                         <select id="select-cursos-aulas"></select>
                         <input type="text" id="adm-a-nome" placeholder="Título da Aula">
-                        <input type="text" id="adm-a-url" placeholder="Link YouTube">
+                        <input type="text" id="adm-a-url" placeholder="Link do YouTube">
                         <button class="btn btn-success" onclick="admSalvarAula()">Vincular Aula</button>
                     </div>
                 </div>
 
                 <div id="tab-adm-provas" class="tab-content hidden">
-                    <h1>Admin: Provas</h1>
+                    <h1>Gerar Provas</h1>
                     <div class="card">
                         <select id="select-cursos-provas"></select>
                         <input type="text" id="adm-q" placeholder="Pergunta">
-                        <input type="text" id="opt0" placeholder="A"> 
-                        <input type="text" id="opt1" placeholder="B"> 
-                        <input type="text" id="opt2" placeholder="C">
-                        <select id="adm-correta">
-                            <option value="0">A</option><option value="1">B</option><option value="2">C</option>
-                        </select>
+                        <input type="text" id="opt0" placeholder="A"> <input type="text" id="opt1" placeholder="B"> <input type="text" id="opt2" placeholder="C">
+                        <select id="adm-correta"><option value="0">Correta: A</option><option value="1">Correta: B</option><option value="2">Correta: C</option></select>
                         <button class="btn btn-success" onclick="admSalvarQuestao()">Salvar Questão</button>
                     </div>
                 </div>
@@ -136,7 +147,6 @@
     </section>
 
     <script>
-        // CONFIGURAÇÃO FIREBASE
         const firebaseConfig = {
             apiKey: "AIzaSyBtshykteNPifgHzy8iBSYPEmNfERZqZ8A",
             authDomain: "educadq-ead.firebaseapp.com",
@@ -151,101 +161,66 @@
         const db = firebase.database();
         const auth = firebase.auth();
 
-        let userData = null; 
-        let cursosData = {}; 
-        let cursoAtualId = null;
+        let userData = null; let cursosData = {}; let cursoAtualId = null;
 
         function login() {
             const email = document.getElementById('email-login').value;
             const pass = document.getElementById('pass-login').value;
-            auth.signInWithEmailAndPassword(email, pass).catch(e => alert("Erro ao entrar: " + e.message));
+            auth.signInWithEmailAndPassword(email, pass).catch(e => alert("Erro: " + e.message));
         }
 
-        // Monitor de Autenticação
         auth.onAuthStateChanged(user => {
             if(user) {
                 document.getElementById('login-screen').classList.add('hidden');
                 document.getElementById('dash-screen').classList.remove('hidden');
-                carregarTudo(user.uid);
+                carregarBase(user.uid);
             }
         });
 
-        function carregarTudo(uid) {
-            // Escuta cursos
-            db.ref('cursos').on('value', snap => { 
-                cursosData = snap.val() || {}; 
-                renderHome(); 
-                renderSelects(); 
-            });
-
-            // Escuta dados do usuário logado
+        function carregarBase(uid) {
+            db.ref('cursos').on('value', snap => { cursosData = snap.val() || {}; renderHome(); renderSelects(); });
             db.ref('usuarios/' + uid).on('value', snap => {
-                const data = snap.val();
-                if(!data) {
-                    // Cria perfil se não existir
-                    userData = { nome: auth.currentUser.email.split('@')[0], role: 'aluno', progresso: {}, notas: {} };
+                userData = snap.val();
+                if(!userData) {
+                    userData = { nome: auth.currentUser.email.split('@')[0], email: auth.currentUser.email, role: 'aluno', progresso: {}, notas: {} };
                     db.ref('usuarios/' + uid).set(userData);
-                } else {
-                    userData = data;
                 }
-                
                 document.getElementById('user-display').innerText = "Olá, " + userData.nome;
-                
-                // Libera painel admin se for admin
-                if(userData.role === 'admin') {
-                    document.getElementById('admin-tools').classList.remove('hidden');
-                } else {
-                    document.getElementById('admin-tools').classList.add('hidden');
-                }
+                if(userData.role === 'admin') document.getElementById('admin-tools').classList.remove('hidden');
             });
         }
 
         function renderHome() {
-            const grid = document.getElementById('grid-cursos'); 
-            grid.innerHTML = "";
+            const grid = document.getElementById('grid-cursos'); grid.innerHTML = "";
             Object.keys(cursosData).forEach(id => {
-                grid.innerHTML += `
-                <div class="card" onclick="abrirGrade('${id}')" style="cursor:pointer">
-                    <img src="${cursosData[id].capa}" width="100%" height="150" style="object-fit:cover; border-radius:8px">
-                    <h3>${cursosData[id].nome}</h3>
-                </div>`;
+                grid.innerHTML += `<div class="card" onclick="abrirGrade('${id}')" style="cursor:pointer">
+                    <img src="${cursosData[id].capa}" width="100%" height="150" style="object-fit:cover; border-radius:10px">
+                    <h3>${cursosData[id].nome}</h3></div>`;
             });
         }
 
         function abrirGrade(id) {
-            cursoAtualId = id; 
-            const curso = cursosData[id];
+            cursoAtualId = id; const curso = cursosData[id];
             document.getElementById('grade-titulo').innerText = curso.nome;
-            const lista = document.getElementById('lista-aulas'); 
-            lista.innerHTML = "";
-            
-            const aulas = curso.aulas || {}; 
-            const keys = Object.keys(aulas);
+            const lista = document.getElementById('lista-aulas'); lista.innerHTML = "";
+            const aulas = curso.aulas || {}; const keys = Object.keys(aulas);
             const concluidas = (userData.progresso && userData.progresso[id]) ? Object.values(userData.progresso[id]) : [];
 
             keys.forEach((aId, idx) => {
                 const icon = concluidas.includes(aId) ? "✅" : "⭕";
-                lista.innerHTML += `
-                <div class="card" style="display:flex; justify-content:space-between; align-items:center">
+                lista.innerHTML += `<div class="card" style="display:flex; justify-content:space-between; align-items:center">
                     <span>${icon} Aula ${idx+1}: ${aulas[aId].nome}</span>
-                    <button class="btn btn-success" onclick="assistir('${aId}')">Assistir</button>
-                </div>`;
+                    <button class="btn btn-success" onclick="assistir('${aId}')">Assistir</button></div>`;
             });
 
             const btnP = document.getElementById('btn-fazer-prova');
             if(keys.length > 0 && concluidas.length >= keys.length) {
                 btnP.disabled = false; btnP.className = "btn btn-accent";
                 btnP.onclick = () => mostrarProva(id);
-            } else {
-                btnP.disabled = true; btnP.className = "btn btn-disabled";
             }
-
-            const certArea = document.getElementById('btn-cert-area');
             if(userData.notas && userData.notas[id] >= 70) {
-                certArea.innerHTML = `<button class="btn btn-success" onclick="verCertificado('${id}')">GERAR CERTIFICADO</button>`;
-            } else {
-                certArea.innerHTML = "";
-            }
+                document.getElementById('btn-cert-area').innerHTML = `<button class="btn btn-success" onclick="verCertificado('${id}')">MEU CERTIFICADO</button>`;
+            } else { document.getElementById('btn-cert-area').innerHTML = ""; }
             showTab('tab-grade');
         }
 
@@ -256,45 +231,32 @@
             document.getElementById('btn-check-aula').onclick = () => {
                 let progRef = db.ref('usuarios/' + auth.currentUser.uid + '/progresso/' + cursoAtualId);
                 progRef.get().then(snap => {
-                    let prog = snap.val() || [];
-                    if(!prog.includes(aId)) prog.push(aId);
-                    progRef.set(prog).then(() => {
-                        alert("Aula Concluída!");
-                        abrirGrade(cursoAtualId);
-                    });
+                    let p = snap.val() || []; if(!p.includes(aId)) p.push(aId);
+                    progRef.set(p).then(() => { alert("Aula concluída!"); abrirGrade(cursoAtualId); });
                 });
             };
             showTab('tab-player');
         }
 
         function mostrarProva(id) {
-            const questoes = cursosData[id].questoes;
-            if(!questoes) return alert("Prova ainda não disponível.");
-            const container = document.getElementById('questoes-container'); 
-            container.innerHTML = "";
-            Object.keys(questoes).forEach((qId, idx) => {
-                const q = questoes[qId];
-                container.innerHTML += `
-                <div class="card">
-                    <p><strong>${idx+1}. ${q.pergunta}</strong></p>
-                    ${q.opts.map((o, i) => `<label style="display:block"><input type="radio" name="q${qId}" value="${i}"> ${o}</label>`).join('')}
-                </div>`;
+            const qs = cursosData[id].questoes; if(!qs) return alert("Prova não cadastrada.");
+            const cont = document.getElementById('questoes-container'); cont.innerHTML = "";
+            Object.keys(qs).forEach((qId, idx) => {
+                cont.innerHTML += `<div class="card"><p><strong>${idx+1}. ${qs[qId].pergunta}</strong></p>
+                ${qs[qId].opts.map((o, i) => `<label style="display:block"><input type="radio" name="q${qId}" value="${i}"> ${o}</label>`).join('')}</div>`;
             });
             showTab('tab-prova');
         }
 
         function corrigirProva() {
-            const questoes = cursosData[cursoAtualId].questoes; 
-            let acertos = 0; 
-            const ids = Object.keys(questoes);
+            const qs = cursosData[cursoAtualId].questoes; let acertos = 0; const ids = Object.keys(qs);
             ids.forEach(id => {
                 const sel = document.querySelector(`input[name="q${id}"]:checked`);
-                if(sel && sel.value == questoes[id].correta) acertos++;
+                if(sel && sel.value == qs[id].correta) acertos++;
             });
             const nota = (acertos / ids.length) * 100;
             db.ref('usuarios/' + auth.currentUser.uid + '/notas/' + cursoAtualId).set(nota).then(() => {
-                alert("Nota final: " + nota.toFixed(0) + "%");
-                abrirGrade(cursoAtualId);
+                alert("Nota: " + nota.toFixed(0) + "%"); abrirGrade(cursoAtualId);
             });
         }
 
@@ -304,46 +266,47 @@
             showTab('tab-cert');
         }
 
-        // FUNÇÕES ADMIN
-        function admCriarCurso() { 
-            const nome = document.getElementById('adm-c-nome').value; 
-            const capa = document.getElementById('adm-c-capa').value; 
-            if(nome && capa) db.ref('cursos').push({nome, capa}); 
+        // ADMIN FUNCTIONS
+        function abrirGerenciarAlunos() {
+            db.ref('usuarios').once('value', snap => {
+                const corpo = document.getElementById('lista-usuarios-corpo'); corpo.innerHTML = "";
+                const us = snap.val();
+                Object.keys(us).forEach(id => {
+                    corpo.innerHTML += `<tr>
+                        <td>${us[id].nome}</td><td>${us[id].email}</td><td>${us[id].role}</td>
+                        <td><button onclick="promover('${id}')">Mudar p/ Admin</button></td>
+                    </tr>`;
+                });
+                showTab('tab-adm-alunos');
+            });
+        }
+
+        function promover(uid) { if(confirm("Tornar admin?")) db.ref('usuarios/' + uid + '/role').set('admin').then(() => abrirGerenciarAlunos()); }
+
+        function admCriarCurso() {
+            const n = document.getElementById('adm-c-nome').value; const c = document.getElementById('adm-c-capa').value;
+            if(n && c) db.ref('cursos').push({nome: n, capa: c});
         }
 
         function admSalvarAula() {
-            const cId = document.getElementById('select-cursos-aulas').value; 
-            const nome = document.getElementById('adm-a-nome').value; 
-            let url = document.getElementById('adm-a-url').value;
-            let idV = url.includes("v=") ? url.split("v=")[1].split("&")[0] : url.split("/").pop();
-            db.ref('cursos/' + cId + '/aulas').push({nome, url: `https://www.youtube.com/embed/${idV}`});
+            const cId = document.getElementById('select-cursos-aulas').value; const n = document.getElementById('adm-a-nome').value;
+            let u = document.getElementById('adm-a-url').value;
+            let idV = u.includes("v=") ? u.split("v=")[1].split("&")[0] : u.split("/").pop();
+            db.ref('cursos/' + cId + '/aulas').push({nome: n, url: `https://www.youtube.com/embed/${idV}`});
         }
 
         function admSalvarQuestao() {
             const cId = document.getElementById('select-cursos-provas').value;
-            const q = { 
-                pergunta: document.getElementById('adm-q').value, 
-                opts: [document.getElementById('opt0').value, document.getElementById('opt1').value, document.getElementById('opt2').value], 
-                correta: document.getElementById('adm-correta').value 
-            };
-            db.ref('cursos/' + cId + '/questoes').push(q); 
-            alert("Questão salva!");
+            const q = { pergunta: document.getElementById('adm-q').value, opts: [document.getElementById('opt0').value, document.getElementById('opt1').value, document.getElementById('opt2').value], correta: document.getElementById('adm-correta').value };
+            db.ref('cursos/' + cId + '/questoes').push(q); alert("Salvo!");
         }
 
         function renderSelects() {
-            const s1 = document.getElementById('select-cursos-aulas'); 
-            const s2 = document.getElementById('select-cursos-provas');
-            s1.innerHTML = s2.innerHTML = ""; 
-            Object.keys(cursosData).forEach(id => { 
-                const opt = `<option value="${id}">${cursosData[id].nome}</option>`; 
-                s1.innerHTML += opt; s2.innerHTML += opt; 
-            });
+            const s1 = document.getElementById('select-cursos-aulas'); const s2 = document.getElementById('select-cursos-provas');
+            s1.innerHTML = s2.innerHTML = ""; Object.keys(cursosData).forEach(id => { const o = `<option value="${id}">${cursosData[id].nome}</option>`; s1.innerHTML += o; s2.innerHTML += o; });
         }
 
-        function showTab(id) { 
-            document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden')); 
-            document.getElementById(id).classList.remove('hidden'); 
-        }
+        function showTab(id) { document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden')); document.getElementById(id).classList.remove('hidden'); }
     </script>
 </body>
 </html>
