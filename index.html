@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Educadq - Plataforma de Ensino</title>
+    <title>Educadq - Gestão EAD</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
@@ -19,13 +19,13 @@
         .nav-item { padding: 12px; cursor: pointer; border-radius: 6px; margin-bottom: 5px; transition: 0.3s; }
         .nav-item:hover, .active { background: var(--accent); }
         .card { background: var(--white); padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; margin: 5px 0; display: inline-block; }
+        .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; margin: 5px 0; }
         .btn-success { background: var(--success); }
         .btn-accent { background: var(--accent); }
         .btn-disabled { background: #999; cursor: not-allowed; }
         input, select { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px; }
         
         #printable-certificate { width: 750px; padding: 50px; border: 15px double var(--primary); background: white; text-align: center; margin: 20px auto; }
         @media print { body * { visibility: hidden; } #printable-certificate, #printable-certificate * { visibility: visible; } #printable-certificate { position: absolute; left: 0; top: 0; width: 100%; } }
@@ -36,9 +36,9 @@
     <section id="login-screen" style="display:flex; justify-content:center; align-items:center; height:100vh; background:var(--primary)">
         <div class="card" style="width:350px; text-align:center">
             <h2 style="color:var(--primary)">EDUCADQ EAD</h2>
-            <input type="email" id="email-login" placeholder="E-mail do Aluno">
+            <input type="email" id="email-login" placeholder="E-mail">
             <input type="password" id="pass-login" placeholder="Senha">
-            <button class="btn btn-accent" style="width:100%" onclick="login()">ENTRAR NO PORTAL</button>
+            <button class="btn btn-accent" style="width:100%" onclick="login()">ENTRAR</button>
         </div>
     </section>
 
@@ -51,7 +51,7 @@
                     <hr>
                     <div class="nav-item" onclick="showTab('tab-adm-cursos')">⚙️ Cursos e Aulas</div>
                     <div class="nav-item" onclick="showTab('tab-adm-provas')">📝 Gerar Provas</div>
-                    <div class="nav-item" onclick="abrirGerenciarAlunos()">👥 Gerenciar Alunos</div>
+                    <div class="nav-item" onclick="abrirGerenciarAlunos()">👥 Cadastrar/Gerenciar Alunos</div>
                 </div>
                 <div class="nav-item" style="margin-top:20px; opacity: 0.8" onclick="auth.signOut(); location.reload();">🚪 Sair</div>
             </nav>
@@ -89,7 +89,7 @@
 
                 <div id="tab-cert" class="tab-content hidden">
                     <button class="btn btn-accent" onclick="showTab('tab-grade')">⬅ Voltar</button>
-                    <button class="btn btn-success" onclick="window.print()">🖨️ Imprimir Certificado</button>
+                    <button class="btn btn-success" onclick="window.print()">🖨️ Imprimir</button>
                     <div id="printable-certificate">
                         <div style="border-bottom: 2px solid var(--accent); padding-bottom: 15px; margin-bottom: 20px;">
                             <h2>Centro de Formação Educadq</h2>
@@ -97,19 +97,26 @@
                         </div>
                         <p>Certificamos que</p>
                         <h1 id="cert-nome-aluno" style="color:var(--accent); font-size: 35px;">NOME</h1>
-                        <p>concluiu com êxito o treinamento de</p>
+                        <p>concluiu o treinamento de</p>
                         <h2 id="cert-curso-nome" style="color:var(--primary)">NOME DO CURSO</h2>
                         <div style="margin-top:60px; border-top:1px solid #333; display:inline-block; width:280px">Direção Educadq</div>
                     </div>
                 </div>
 
                 <div id="tab-adm-alunos" class="tab-content hidden">
-                    <h1>Alunos no Sistema</h1>
+                    <h1>Gerenciar Alunos</h1>
+                    <div class="card" style="max-width: 500px;">
+                        <h3>➕ Cadastrar Novo Aluno</h3>
+                        <input type="text" id="new-aluno-nome" placeholder="Nome Completo do Aluno">
+                        <input type="email" id="new-aluno-email" placeholder="E-mail">
+                        <input type="password" id="new-aluno-pass" placeholder="Defina uma Senha">
+                        <button class="btn btn-success" onclick="cadastrarAlunoFirebase()">CADASTRAR ALUNO</button>
+                    </div>
+                    
                     <div class="card">
+                        <h3>Alunos Cadastrados</h3>
                         <table id="tabela-alunos">
-                            <thead>
-                                <tr><th>Nome</th><th>E-mail</th><th>Status</th><th>Ações</th></tr>
-                            </thead>
+                            <thead><tr><th>Nome</th><th>E-mail</th><th>Status</th></tr></thead>
                             <tbody id="lista-usuarios-corpo"></tbody>
                         </table>
                     </div>
@@ -121,7 +128,7 @@
                         <h3>1. Novo Curso</h3>
                         <input type="text" id="adm-c-nome" placeholder="Nome do Curso">
                         <input type="text" id="adm-c-capa" placeholder="URL da Foto de Capa">
-                        <button class="btn btn-success" onclick="admCriarCurso()">Criar Curso</button>
+                        <button class="btn btn-success" onclick="admCriarCurso()">Salvar Curso</button>
                     </div>
                     <div class="card">
                         <h3>2. Adicionar Aula</h3>
@@ -190,6 +197,56 @@
             });
         }
 
+        // --- FUNÇÃO PARA CADASTRAR ALUNO PELO DASHBOARD ---
+        async function cadastrarAlunoFirebase() {
+            const nome = document.getElementById('new-aluno-nome').value;
+            const email = document.getElementById('new-aluno-email').value;
+            const pass = document.getElementById('new-aluno-pass').value;
+
+            if(!nome || !email || !pass) return alert("Preencha todos os campos do aluno!");
+
+            // Criamos uma segunda instância do Firebase Auth temporária para não deslogar o admin
+            const secondaryApp = firebase.initializeApp(firebaseConfig, "Secondary");
+            
+            try {
+                const userCredential = await secondaryApp.auth().createUserWithEmailAndPassword(email, pass);
+                const uid = userCredential.user.uid;
+
+                // Salva no banco de dados
+                await db.ref('usuarios/' + uid).set({
+                    nome: nome,
+                    email: email,
+                    role: 'aluno',
+                    progresso: {},
+                    notas: {}
+                });
+
+                alert("Aluno cadastrado com sucesso!");
+                document.getElementById('new-aluno-nome').value = "";
+                document.getElementById('new-aluno-email').value = "";
+                document.getElementById('new-aluno-pass').value = "";
+                abrirGerenciarAlunos();
+                
+                await secondaryApp.delete();
+            } catch (error) {
+                alert("Erro ao cadastrar: " + error.message);
+            }
+        }
+
+        function abrirGerenciarAlunos() {
+            db.ref('usuarios').once('value', snap => {
+                const corpo = document.getElementById('lista-usuarios-corpo'); corpo.innerHTML = "";
+                const us = snap.val();
+                if(us) {
+                    Object.keys(us).forEach(id => {
+                        corpo.innerHTML += `<tr><td>${us[id].nome}</td><td>${us[id].email}</td><td>${us[id].role}</td></tr>`;
+                    });
+                }
+                showTab('tab-adm-alunos');
+            });
+        }
+
+        // --- RESTANTE DAS FUNÇÕES ---
         function renderHome() {
             const grid = document.getElementById('grid-cursos'); grid.innerHTML = "";
             Object.keys(cursosData).forEach(id => {
@@ -265,23 +322,6 @@
             document.getElementById('cert-curso-nome').innerText = cursosData[id].nome.toUpperCase();
             showTab('tab-cert');
         }
-
-        // ADMIN FUNCTIONS
-        function abrirGerenciarAlunos() {
-            db.ref('usuarios').once('value', snap => {
-                const corpo = document.getElementById('lista-usuarios-corpo'); corpo.innerHTML = "";
-                const us = snap.val();
-                Object.keys(us).forEach(id => {
-                    corpo.innerHTML += `<tr>
-                        <td>${us[id].nome}</td><td>${us[id].email}</td><td>${us[id].role}</td>
-                        <td><button onclick="promover('${id}')">Mudar p/ Admin</button></td>
-                    </tr>`;
-                });
-                showTab('tab-adm-alunos');
-            });
-        }
-
-        function promover(uid) { if(confirm("Tornar admin?")) db.ref('usuarios/' + uid + '/role').set('admin').then(() => abrirGerenciarAlunos()); }
 
         function admCriarCurso() {
             const n = document.getElementById('adm-c-nome').value; const c = document.getElementById('adm-c-capa').value;
