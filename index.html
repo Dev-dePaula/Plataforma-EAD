@@ -24,6 +24,12 @@
         .btn-accent { background: var(--accent); }
         .btn-danger { background: var(--danger); font-size: 12px; padding: 5px 10px; }
         .btn-disabled { background: #999; cursor: not-allowed; }
+        .btn-download { background: #34495e; color: white; text-decoration: none; padding: 6px 12px; border-radius: 4px; font-size: 12px; display: inline-block; margin-top: 8px; font-weight: bold; }
+        
+        /* Barra de Progresso */
+        .progress-container { background: #eee; height: 10px; border-radius: 5px; margin-top: 10px; overflow: hidden; }
+        .progress-bar { background: var(--success); height: 100%; transition: 0.5s; width: 0%; }
+
         input, select { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         th, td { padding: 10px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px; }
@@ -131,18 +137,18 @@
                         <button class="btn btn-success" onclick="admCriarCurso()">Salvar Novo Curso</button>
                     </div>
                     <div class="card">
-                        <h3>2. Adicionar/Excluir Aulas</h3>
+                        <h3>2. Adicionar/Excluir Aulas e Materiais</h3>
                         <select id="select-cursos-aulas" onchange="listarAulasParaExcluir(this.value)">
                             <option value="">Selecione um curso para ver as aulas...</option>
                         </select>
                         <hr>
                         <input type="text" id="adm-a-nome" placeholder="Título da Aula">
                         <input type="text" id="adm-a-url" placeholder="Link do YouTube">
-                        <button class="btn btn-success" onclick="admSalvarAula()">Vincular Aula</button>
+                        <input type="text" id="adm-a-material" placeholder="Link do Material de Apoio (Drive/PDF)">
+                        <button class="btn btn-success" onclick="admSalvarAula()">Vincular Aula e Material</button>
                         
                         <h4>Aulas atuais deste curso:</h4>
-                        <div id="lista-aulas-admin">
-                            </div>
+                        <div id="lista-aulas-admin"></div>
                     </div>
                 </div>
 
@@ -201,10 +207,110 @@
                 }
                 document.getElementById('user-display').innerText = "Olá, " + userData.nome;
                 if(userData.role === 'admin') document.getElementById('admin-tools').classList.remove('hidden');
+                renderHome(); // Re-renderiza para atualizar progresso
             });
         }
 
-        // --- EXCLUIR AULA (NOVO) ---
+        // --- RENDERIZACAO HOME COM BARRA DE PROGRESSO ---
+        function renderHome() {
+            const grid = document.getElementById('grid-cursos'); 
+            grid.innerHTML = "";
+            if(!userData) return;
+
+            Object.keys(cursosData).forEach(id => {
+                const curso = cursosData[id];
+                const totalAulas = curso.aulas ? Object.keys(curso.aulas).length : 0;
+                const concluidas = (userData.progresso && userData.progresso[id]) ? Object.values(userData.progresso[id]).length : 0;
+                const percent = totalAulas > 0 ? Math.round((concluidas / totalAulas) * 100) : 0;
+
+                grid.innerHTML += `
+                    <div class="card" onclick="abrirGrade('${id}')" style="cursor:pointer">
+                        <img src="${curso.capa}" width="100%" height="150" style="object-fit:cover; border-radius:10px">
+                        <h3 style="margin:10px 0 5px 0">${curso.nome}</h3>
+                        <div class="progress-container">
+                            <div class="progress-bar" style="width: ${percent}%"></div>
+                        </div>
+                        <small>${percent}% concluído</small>
+                    </div>`;
+            });
+        }
+
+        // --- GRADE COM MATERIAL DE APOIO ---
+        function abrirGrade(id) {
+            cursoAtualId = id; const curso = cursosData[id];
+            document.getElementById('grade-titulo').innerText = curso.nome;
+            const lista = document.getElementById('lista-aulas'); lista.innerHTML = "";
+            const aulas = curso.aulas || {}; const keys = Object.keys(aulas);
+            const concluidas = (userData.progresso && userData.progresso[id]) ? Object.values(userData.progresso[id]) : [];
+
+            keys.forEach((aId, idx) => {
+                const icon = concluidas.includes(aId) ? "✅" : "⭕";
+                const materialBtn = aulas[aId].material ? 
+                    `<a href="${aulas[aId].material}" target="_blank" class="btn-download" onclick="event.stopPropagation()">📂 Material de Apoio</a>` : "";
+
+                lista.innerHTML += `
+                    <div class="card" style="display:flex; justify-content:space-between; align-items:center">
+                        <div>
+                            <span>${icon} Aula ${idx+1}: ${aulas[aId].nome}</span><br>
+                            ${materialBtn}
+                        </div>
+                        <button class="btn btn-success" onclick="assistir('${aId}')">Assistir</button>
+                    </div>`;
+            });
+
+            const btnP = document.getElementById('btn-fazer-prova');
+            if(keys.length > 0 && concluidas.length >= keys.length) {
+                btnP.disabled = false; btnP.className = "btn btn-accent";
+                btnP.onclick = () => mostrarProva(id);
+            } else {
+                btnP.disabled = true; btnP.className = "btn btn-disabled";
+            }
+            
+            if(userData.notas && userData.notas[id] >= 70) {
+                document.getElementById('btn-cert-area').innerHTML = `<button class="btn btn-success" onclick="verCertificado('${id}')">MEU CERTIFICADO</button>`;
+            } else { document.getElementById('btn-cert-area').innerHTML = ""; }
+            showTab('tab-grade');
+        }
+
+        function assistir(aId) {
+            const aula = cursosData[cursoAtualId].aulas[aId];
+            document.getElementById('player-titulo').innerText = aula.nome;
+            document.getElementById('video-frame').src = aula.url;
+            document.getElementById('btn-check-aula').onclick = () => {
+                let progRef = db.ref('usuarios/' + auth.currentUser.uid + '/progresso/' + cursoAtualId);
+                progRef.get().then(snap => {
+                    let p = snap.val() || []; if(!p.includes(aId)) p.push(aId);
+                    progRef.set(p).then(() => { alert("Aula concluída!"); abrirGrade(cursoAtualId); });
+                });
+            };
+            showTab('tab-player');
+        }
+
+        // --- SALVAR AULA E MATERIAL ---
+        function admSalvarAula() {
+            const cId = document.getElementById('select-cursos-aulas').value;
+            const n = document.getElementById('adm-a-nome').value;
+            let u = document.getElementById('adm-a-url').value;
+            const mat = document.getElementById('adm-a-material').value;
+
+            if(!cId || !n || !u) return alert("Preencha título e link do vídeo!");
+            
+            let idV = u.includes("v=") ? u.split("v=")[1].split("&")[0] : u.split("/").pop();
+            
+            db.ref('cursos/' + cId + '/aulas').push({
+                nome: n, 
+                url: `https://www.youtube.com/embed/${idV}`,
+                material: mat || ""
+            }).then(() => {
+                alert("Aula adicionada!");
+                document.getElementById('adm-a-nome').value = "";
+                document.getElementById('adm-a-url').value = "";
+                document.getElementById('adm-a-material').value = "";
+                listarAulasParaExcluir(cId);
+            });
+        }
+
+        // --- DEMAIS FUNÇÕES DO SISTEMA ---
         function listarAulasParaExcluir(cursoId) {
             const container = document.getElementById('lista-aulas-admin');
             container.innerHTML = "";
@@ -231,7 +337,6 @@
             }
         }
 
-        // --- CADASTRAR ALUNO ---
         async function cadastrarAlunoFirebase() {
             const nome = document.getElementById('new-aluno-nome').value;
             const email = document.getElementById('new-aluno-email').value;
@@ -259,57 +364,8 @@
             });
         }
 
-        // --- RENDERIZACAO ---
-        function renderHome() {
-            const grid = document.getElementById('grid-cursos'); grid.innerHTML = "";
-            Object.keys(cursosData).forEach(id => {
-                grid.innerHTML += `<div class="card" onclick="abrirGrade('${id}')" style="cursor:pointer">
-                    <img src="${cursosData[id].capa}" width="100%" height="150" style="object-fit:cover; border-radius:10px">
-                    <h3>${cursosData[id].nome}</h3></div>`;
-            });
-        }
-
-        function abrirGrade(id) {
-            cursoAtualId = id; const curso = cursosData[id];
-            document.getElementById('grade-titulo').innerText = curso.nome;
-            const lista = document.getElementById('lista-aulas'); lista.innerHTML = "";
-            const aulas = curso.aulas || {}; const keys = Object.keys(aulas);
-            const concluidas = (userData.progresso && userData.progresso[id]) ? Object.values(userData.progresso[id]) : [];
-
-            keys.forEach((aId, idx) => {
-                const icon = concluidas.includes(aId) ? "✅" : "⭕";
-                lista.innerHTML += `<div class="card" style="display:flex; justify-content:space-between; align-items:center">
-                    <span>${icon} Aula ${idx+1}: ${aulas[aId].nome}</span>
-                    <button class="btn btn-success" onclick="assistir('${aId}')">Assistir</button></div>`;
-            });
-
-            const btnP = document.getElementById('btn-fazer-prova');
-            if(keys.length > 0 && concluidas.length >= keys.length) {
-                btnP.disabled = false; btnP.className = "btn btn-accent";
-                btnP.onclick = () => mostrarProva(id);
-            }
-            if(userData.notas && userData.notas[id] >= 70) {
-                document.getElementById('btn-cert-area').innerHTML = `<button class="btn btn-success" onclick="verCertificado('${id}')">MEU CERTIFICADO</button>`;
-            } else { document.getElementById('btn-cert-area').innerHTML = ""; }
-            showTab('tab-grade');
-        }
-
-        function assistir(aId) {
-            const aula = cursosData[cursoAtualId].aulas[aId];
-            document.getElementById('player-titulo').innerText = aula.nome;
-            document.getElementById('video-frame').src = aula.url;
-            document.getElementById('btn-check-aula').onclick = () => {
-                let progRef = db.ref('usuarios/' + auth.currentUser.uid + '/progresso/' + cursoAtualId);
-                progRef.get().then(snap => {
-                    let p = snap.val() || []; if(!p.includes(aId)) p.push(aId);
-                    progRef.set(p).then(() => { alert("Aula concluída!"); abrirGrade(cursoAtualId); });
-                });
-            };
-            showTab('tab-player');
-        }
-
         function mostrarProva(id) {
-            const qs = cursosData[id].questoes; if(!qs) return alert("Sem prova.");
+            const qs = cursosData[id].questoes; if(!qs) return alert("Sem prova cadastrada para este curso.");
             const cont = document.getElementById('questoes-container'); cont.innerHTML = "";
             Object.keys(qs).forEach((qId, idx) => {
                 cont.innerHTML += `<div class="card"><p><strong>${idx+1}. ${qs[qId].pergunta}</strong></p>
@@ -326,7 +382,7 @@
             });
             const nota = (acertos / ids.length) * 100;
             db.ref('usuarios/' + auth.currentUser.uid + '/notas/' + cursoAtualId).set(nota).then(() => {
-                alert("Nota: " + nota.toFixed(0) + "%"); abrirGrade(cursoAtualId);
+                alert("Sua nota foi: " + nota.toFixed(0) + "%"); abrirGrade(cursoAtualId);
             });
         }
 
@@ -338,24 +394,23 @@
 
         function admCriarCurso() {
             const n = document.getElementById('adm-c-nome').value; const c = document.getElementById('adm-c-capa').value;
-            if(n && c) db.ref('cursos').push({nome: n, capa: c});
-        }
-
-        function admSalvarAula() {
-            const cId = document.getElementById('select-cursos-aulas').value; const n = document.getElementById('adm-a-nome').value;
-            let u = document.getElementById('adm-a-url').value;
-            if(!cId || !n || !u) return alert("Preencha tudo!");
-            let idV = u.includes("v=") ? u.split("v=")[1].split("&")[0] : u.split("/").pop();
-            db.ref('cursos/' + cId + '/aulas').push({nome: n, url: `https://www.youtube.com/embed/${idV}`}).then(() => {
-                alert("Aula adicionada!");
-                listarAulasParaExcluir(cId);
+            if(n && c) db.ref('cursos').push({nome: n, capa: c}).then(() => {
+                alert("Curso criado!"); document.getElementById('adm-c-nome').value = ""; document.getElementById('adm-c-capa').value = "";
             });
         }
 
         function admSalvarQuestao() {
             const cId = document.getElementById('select-cursos-provas').value;
-            const q = { pergunta: document.getElementById('adm-q').value, opts: [document.getElementById('opt0').value, document.getElementById('opt1').value, document.getElementById('opt2').value], correta: document.getElementById('adm-correta').value };
-            db.ref('cursos/' + cId + '/questoes').push(q); alert("Salvo!");
+            const q = { 
+                pergunta: document.getElementById('adm-q').value, 
+                opts: [document.getElementById('opt0').value, document.getElementById('opt1').value, document.getElementById('opt2').value], 
+                correta: document.getElementById('adm-correta').value 
+            };
+            if(!cId || !q.pergunta) return alert("Preencha a questão!");
+            db.ref('cursos/' + cId + '/questoes').push(q).then(() => {
+                alert("Questão salva!");
+                document.getElementById('adm-q').value = "";
+            });
         }
 
         function renderSelects() {
