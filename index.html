@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Educadq - Gestão EAD Pro</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -11,67 +11,96 @@
     
     <style>
         :root { --primary: #0f3460; --accent: #e94560; --success: #27ae60; --danger: #c0392b; --bg: #f4f7f6; --white: #fff; }
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); color: #333; }
+        
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); color: #333; overflow-x: hidden; }
         .hidden { display: none !important; }
-        .wrapper { display: flex; min-height: 100vh; }
+        
+        /* Layout Responsivo Principal */
+        .wrapper { display: flex; min-height: 100vh; flex-direction: row; }
+        
         .sidebar { width: 260px; background: var(--primary); color: white; padding: 20px; flex-shrink: 0; }
-        .main { flex: 1; padding: 30px; }
-        .nav-item { padding: 12px; cursor: pointer; border-radius: 6px; margin-bottom: 5px; transition: 0.3s; }
+        .main { flex: 1; padding: 20px; max-width: 100%; box-sizing: border-box; }
+
+        /* Ajustes para Celular (Telas menores que 768px) */
+        @media (max-width: 768px) {
+            .wrapper { flex-direction: column; }
+            .sidebar { width: 100%; padding: 15px; box-sizing: border-box; text-align: center; }
+            .main { padding: 15px; }
+            iframe { height: 250px !important; } /* Vídeo menor no celular */
+        }
+
+        .nav-item { padding: 12px; cursor: pointer; border-radius: 6px; margin-bottom: 5px; transition: 0.3s; font-size: 15px; }
         .nav-item:hover, .active { background: var(--accent); }
-        .card { background: var(--white); padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; margin: 5px 0; }
+        
+        .card { background: var(--white); padding: 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        
+        /* Grid de Cursos Responsivo */
+        #grid-cursos { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 
+            gap: 20px; 
+        }
+
+        @media (max-width: 480px) {
+            #grid-cursos { grid-template-columns: 1fr; }
+        }
+
+        .btn { padding: 12px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; margin: 5px 0; width: 100%; display: block; text-align: center; box-sizing: border-box; }
         .btn-success { background: var(--success); }
         .btn-accent { background: var(--accent); }
-        .btn-danger { background: var(--danger); font-size: 12px; padding: 5px 10px; }
+        .btn-danger { background: var(--danger); font-size: 12px; padding: 8px; }
         .btn-disabled { background: #999; cursor: not-allowed; }
-        .btn-download { background: #34495e; color: white; text-decoration: none; padding: 6px 12px; border-radius: 4px; font-size: 12px; display: inline-block; margin-top: 8px; font-weight: bold; }
         
-        /* Barra de Progresso */
-        .progress-container { background: #eee; height: 10px; border-radius: 5px; margin-top: 10px; overflow: hidden; }
-        .progress-bar { background: var(--success); height: 100%; transition: 0.5s; width: 0%; }
+        .btn-download { background: #34495e; color: white; text-decoration: none; padding: 8px 12px; border-radius: 4px; font-size: 13px; display: inline-block; margin-top: 10px; font-weight: bold; }
+        
+        .progress-container { background: #eee; height: 12px; border-radius: 6px; margin-top: 10px; overflow: hidden; }
+        .progress-bar { background: var(--success); height: 100%; transition: 0.8s; width: 0%; }
 
-        input, select { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px; }
+        input, select { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; font-size: 16px; box-sizing: border-box; }
         
-        #printable-certificate { width: 750px; padding: 50px; border: 15px double var(--primary); background: white; text-align: center; margin: 20px auto; }
-        @media print { body * { visibility: hidden; } #printable-certificate, #printable-certificate * { visibility: visible; } #printable-certificate { position: absolute; left: 0; top: 0; width: 100%; } }
+        /* Tabela Responsiva */
+        .table-container { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; min-width: 500px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+
+        #video-frame { border-radius: 8px; margin-bottom: 15px; }
     </style>
 </head>
 <body>
 
-    <section id="login-screen" style="display:flex; justify-content:center; align-items:center; height:100vh; background:var(--primary)">
-        <div class="card" style="width:350px; text-align:center">
-            <h2 style="color:var(--primary)">EDUCADQ EAD</h2>
-            <input type="email" id="email-login" placeholder="E-mail">
-            <input type="password" id="pass-login" placeholder="Senha">
-            <button class="btn btn-accent" style="width:100%" onclick="login()">ENTRAR</button>
+    <section id="login-screen" style="display:flex; justify-content:center; align-items:center; min-height:100vh; background:var(--primary); padding: 20px;">
+        <div class="card" style="width:100%; max-width:350px; text-align:center">
+            <h2 style="color:var(--primary); margin-top:0;">EDUCADQ EAD</h2>
+            <p>Acesso ao Aluno</p>
+            <input type="email" id="email-login" placeholder="Seu E-mail">
+            <input type="password" id="pass-login" placeholder="Sua Senha">
+            <button class="btn btn-accent" onclick="login()">ENTRAR NO PORTAL</button>
         </div>
     </section>
 
     <section id="dash-screen" class="hidden">
         <div class="wrapper">
             <nav class="sidebar">
-                <h3 id="user-display">Carregando...</h3>
+                <h3 id="user-display" style="margin-bottom: 25px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">Olá!</h3>
                 <div class="nav-item active" onclick="showTab('tab-cursos')">📚 Meus Cursos</div>
                 <div id="admin-tools" class="hidden">
-                    <hr>
+                    <p style="font-size: 11px; text-transform: uppercase; opacity: 0.6; margin-top: 20px;">Painel de Gestão</p>
                     <div class="nav-item" onclick="showTab('tab-adm-cursos')">⚙️ Cursos e Aulas</div>
                     <div class="nav-item" onclick="showTab('tab-adm-provas')">📝 Gerar Provas</div>
-                    <div class="nav-item" onclick="abrirGerenciarAlunos()">👥 Cadastrar/Gerenciar Alunos</div>
+                    <div class="nav-item" onclick="abrirGerenciarAlunos()">👥 Gerenciar Alunos</div>
                 </div>
-                <div class="nav-item" style="margin-top:20px; opacity: 0.8" onclick="auth.signOut(); location.reload();">🚪 Sair</div>
+                <div class="nav-item" style="margin-top:40px; color: #ffbcbc;" onclick="auth.signOut(); location.reload();">🚪 Sair do Sistema</div>
             </nav>
 
             <main class="main">
                 <div id="tab-cursos" class="tab-content">
                     <h1>Meus Treinamentos</h1>
-                    <div id="grid-cursos" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap:20px;"></div>
+                    <div id="grid-cursos"></div>
                 </div>
 
                 <div id="tab-grade" class="tab-content hidden">
-                    <button class="btn btn-accent" onclick="showTab('tab-cursos')">⬅ Voltar</button>
-                    <h1 id="grade-titulo">Curso</h1>
+                    <button class="btn btn-accent" style="max-width: 150px;" onclick="showTab('tab-cursos')">⬅ Voltar</button>
+                    <h2 id="grade-titulo">Curso</h2>
                     <div id="lista-aulas"></div>
                     <div class="card" style="text-align:center">
                         <button id="btn-fazer-prova" class="btn btn-disabled" disabled>Fazer Prova Final</button>
@@ -80,93 +109,100 @@
                 </div>
 
                 <div id="tab-player" class="tab-content hidden">
-                    <button class="btn btn-accent" onclick="showTab('tab-grade')">⬅ Voltar</button>
+                    <button class="btn btn-accent" style="max-width: 150px;" onclick="showTab('tab-grade')">⬅ Voltar</button>
                     <h2 id="player-titulo">Aula</h2>
-                    <div class="card" style="padding:0; overflow:hidden">
-                        <iframe id="video-frame" width="100%" height="450" frameborder="0" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
+                    <div class="card" style="padding:0; overflow:hidden; background: #000;">
+                        <iframe id="video-frame" width="100%" height="450" frameborder="0" allowfullscreen></iframe>
                     </div>
-                    <button id="btn-check-aula" class="btn btn-success" style="width:100%">Concluir esta Aula ✅</button>
-                </div>
-
-                <div id="tab-prova" class="tab-content hidden">
-                    <h1 id="prova-titulo">Avaliação</h1>
-                    <div id="questoes-container"></div>
-                    <button class="btn btn-success" style="width:100%" onclick="corrigirProva()">Finalizar e Enviar</button>
-                </div>
-
-                <div id="tab-cert" class="tab-content hidden">
-                    <button class="btn btn-accent" onclick="showTab('tab-grade')">⬅ Voltar</button>
-                    <button class="btn btn-success" onclick="window.print()">🖨️ Imprimir</button>
-                    <div id="printable-certificate">
-                        <div style="border-bottom: 2px solid var(--accent); padding-bottom: 15px; margin-bottom: 20px;">
-                            <h2>Centro de Formação Educadq</h2>
-                            <p>CNPJ: 50.062.731/0001-30 | Pontal do Paraná, PR</p>
-                        </div>
-                        <p>Certificamos que</p>
-                        <h1 id="cert-nome-aluno" style="color:var(--accent); font-size: 35px;">NOME</h1>
-                        <p>concluiu o treinamento de</p>
-                        <h2 id="cert-curso-nome" style="color:var(--primary)">NOME DO CURSO</h2>
-                        <div style="margin-top:60px; border-top:1px solid #333; display:inline-block; width:280px">Direção Educadq</div>
-                    </div>
+                    <button id="btn-check-aula" class="btn btn-success">Marcar Aula como Concluída ✅</button>
                 </div>
 
                 <div id="tab-adm-alunos" class="tab-content hidden">
-                    <h1>Gerenciar Alunos</h1>
-                    <div class="card" style="max-width: 500px;">
-                        <h3>➕ Cadastrar Novo Aluno</h3>
+                    <h1>👥 Gerenciar Alunos</h1>
+                    <div class="card">
+                        <h3>Cadastrar Aluno</h3>
                         <input type="text" id="new-aluno-nome" placeholder="Nome Completo">
-                        <input type="email" id="new-aluno-email" placeholder="E-mail">
-                        <input type="password" id="new-aluno-pass" placeholder="Senha (mínimo 6 caracteres)">
-                        <button class="btn btn-success" onclick="cadastrarAlunoFirebase()">CADASTRAR ALUNO</button>
+                        <input type="email" id="new-aluno-email" placeholder="E-mail de Acesso">
+                        <input type="password" id="new-aluno-pass" placeholder="Senha Temporária">
+                        <button class="btn btn-success" onclick="cadastrarAlunoFirebase()">CRIAR CONTA</button>
                     </div>
                     <div class="card">
-                        <h3>Alunos Cadastrados</h3>
-                        <table id="tabela-alunos">
-                            <thead><tr><th>Nome</th><th>E-mail</th><th>Status</th></tr></thead>
-                            <tbody id="lista-usuarios-corpo"></tbody>
-                        </table>
+                        <h3>Alunos Ativos</h3>
+                        <div class="table-container">
+                            <table id="tabela-alunos">
+                                <thead><tr><th>Nome</th><th>E-mail</th><th>Função</th></tr></thead>
+                                <tbody id="lista-usuarios-corpo"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
 
                 <div id="tab-adm-cursos" class="tab-content hidden">
-                    <h1>Configurar Cursos e Aulas</h1>
+                    <h1>⚙️ Configurar Cursos</h1>
                     <div class="card">
-                        <h3>1. Gerenciar Cursos</h3>
+                        <h3>1. Novo Curso</h3>
                         <input type="text" id="adm-c-nome" placeholder="Nome do Curso">
                         <input type="text" id="adm-c-capa" placeholder="URL da Foto de Capa">
-                        <button class="btn btn-success" onclick="admCriarCurso()">Salvar Novo Curso</button>
+                        <button class="btn btn-success" onclick="admCriarCurso()">SALVAR CURSO</button>
                     </div>
                     <div class="card">
-                        <h3>2. Adicionar/Excluir Aulas e Materiais</h3>
+                        <h3>2. Adicionar Aula e Material</h3>
                         <select id="select-cursos-aulas" onchange="listarAulasParaExcluir(this.value)">
-                            <option value="">Selecione um curso para ver as aulas...</option>
+                            <option value="">Selecione o Curso...</option>
                         </select>
-                        <hr>
                         <input type="text" id="adm-a-nome" placeholder="Título da Aula">
-                        <input type="text" id="adm-a-url" placeholder="Link do YouTube">
-                        <input type="text" id="adm-a-material" placeholder="Link do Material de Apoio (Drive/PDF)">
-                        <button class="btn btn-success" onclick="admSalvarAula()">Vincular Aula e Material</button>
-                        
-                        <h4>Aulas atuais deste curso:</h4>
-                        <div id="lista-aulas-admin"></div>
+                        <input type="text" id="adm-a-url" placeholder="Link YouTube (v=...)">
+                        <input type="text" id="adm-a-material" placeholder="Link do PDF de Apoio (opcional)">
+                        <button class="btn btn-success" onclick="admSalvarAula()">VINCULAR AULA</button>
+                        <div id="lista-aulas-admin" style="margin-top: 20px;"></div>
                     </div>
                 </div>
 
                 <div id="tab-adm-provas" class="tab-content hidden">
-                    <h1>Gerar Provas</h1>
+                    <h1>📝 Gerar Provas</h1>
                     <div class="card">
                         <select id="select-cursos-provas"></select>
-                        <input type="text" id="adm-q" placeholder="Pergunta">
-                        <input type="text" id="opt0" placeholder="A"> <input type="text" id="opt1" placeholder="B"> <input type="text" id="opt2" placeholder="C">
-                        <select id="adm-correta"><option value="0">Correta: A</option><option value="1">Correta: B</option><option value="2">Correta: C</option></select>
-                        <button class="btn btn-success" onclick="admSalvarQuestao()">Salvar Questão</button>
+                        <input type="text" id="adm-q" placeholder="Pergunta da Questão">
+                        <input type="text" id="opt0" placeholder="Opção A">
+                        <input type="text" id="opt1" placeholder="Opção B">
+                        <input type="text" id="opt2" placeholder="Opção C">
+                        <select id="adm-correta">
+                            <option value="0">Correta: Opção A</option>
+                            <option value="1">Correta: Opção B</option>
+                            <option value="2">Correta: Opção C</option>
+                        </select>
+                        <button class="btn btn-success" onclick="admSalvarQuestao()">SALVAR NA PROVA</button>
                     </div>
                 </div>
+                
+                <div id="tab-prova" class="tab-content hidden">
+                    <h1>Avaliação de Conhecimento</h1>
+                    <div id="questoes-container"></div>
+                    <button class="btn btn-success" onclick="corrigirProva()">ENVIAR RESPOSTAS</button>
+                </div>
+
+                <div id="tab-cert" class="tab-content hidden">
+                    <button class="btn btn-accent" style="max-width: 150px;" onclick="showTab('tab-grade')">⬅ Voltar</button>
+                    <button class="btn btn-success" style="max-width: 200px;" onclick="window.print()">🖨️ BAIXAR / IMPRIMIR</button>
+                    <div id="printable-certificate">
+                        <div style="border-bottom: 2px solid var(--accent); padding-bottom: 15px; margin-bottom: 20px;">
+                            <h2>Educadq - Centro de Formação</h2>
+                            <p>CNPJ: 50.062.731/0001-30</p>
+                        </div>
+                        <p>Certificamos para os devidos fins que</p>
+                        <h1 id="cert-nome-aluno" style="color:var(--accent); font-size: 30px;">NOME</h1>
+                        <p>concluiu com êxito o treinamento de</p>
+                        <h2 id="cert-curso-nome" style="color:var(--primary)">NOME DO CURSO</h2>
+                        <div style="margin-top:50px; border-top:1px solid #333; display:inline-block; width:250px">Direção Educadq</div>
+                    </div>
+                </div>
+
             </main>
         </div>
     </section>
 
     <script>
+        // CONFIGURAÇÃO FIREBASE
         const firebaseConfig = {
             apiKey: "AIzaSyBtshykteNPifgHzy8iBSYPEmNfERZqZ8A",
             authDomain: "educadq-ead.firebaseapp.com",
@@ -186,7 +222,8 @@
         function login() {
             const email = document.getElementById('email-login').value;
             const pass = document.getElementById('pass-login').value;
-            auth.signInWithEmailAndPassword(email, pass).catch(e => alert("Erro: " + e.message));
+            if(!email || !pass) return alert("Preencha os campos!");
+            auth.signInWithEmailAndPassword(email, pass).catch(e => alert("Erro: Senha ou E-mail incorretos."));
         }
 
         auth.onAuthStateChanged(user => {
@@ -205,69 +242,58 @@
                     userData = { nome: auth.currentUser.email.split('@')[0], email: auth.currentUser.email, role: 'aluno', progresso: {}, notas: {} };
                     db.ref('usuarios/' + uid).set(userData);
                 }
-                document.getElementById('user-display').innerText = "Olá, " + userData.nome;
+                document.getElementById('user-display').innerText = "Olá, " + (userData.nome.split(' ')[0]);
                 if(userData.role === 'admin') document.getElementById('admin-tools').classList.remove('hidden');
-                renderHome(); // Re-renderiza para atualizar progresso
+                renderHome();
             });
         }
 
-        // --- RENDERIZACAO HOME COM BARRA DE PROGRESSO ---
         function renderHome() {
-            const grid = document.getElementById('grid-cursos'); 
-            grid.innerHTML = "";
+            const grid = document.getElementById('grid-cursos'); grid.innerHTML = "";
             if(!userData) return;
-
             Object.keys(cursosData).forEach(id => {
-                const curso = cursosData[id];
-                const totalAulas = curso.aulas ? Object.keys(curso.aulas).length : 0;
-                const concluidas = (userData.progresso && userData.progresso[id]) ? Object.values(userData.progresso[id]).length : 0;
-                const percent = totalAulas > 0 ? Math.round((concluidas / totalAulas) * 100) : 0;
+                const c = cursosData[id];
+                const total = c.aulas ? Object.keys(c.aulas).length : 0;
+                const done = (userData.progresso && userData.progresso[id]) ? Object.values(userData.progresso[id]).length : 0;
+                const perc = total > 0 ? Math.round((done / total) * 100) : 0;
 
                 grid.innerHTML += `
                     <div class="card" onclick="abrirGrade('${id}')" style="cursor:pointer">
-                        <img src="${curso.capa}" width="100%" height="150" style="object-fit:cover; border-radius:10px">
-                        <h3 style="margin:10px 0 5px 0">${curso.nome}</h3>
-                        <div class="progress-container">
-                            <div class="progress-bar" style="width: ${percent}%"></div>
-                        </div>
-                        <small>${percent}% concluído</small>
+                        <img src="${c.capa}" width="100%" height="150" style="object-fit:cover; border-radius:8px">
+                        <h3 style="margin:12px 0 5px 0">${c.nome}</h3>
+                        <div class="progress-container"><div class="progress-bar" style="width:${perc}%"></div></div>
+                        <small>${perc}% concluído</small>
                     </div>`;
             });
         }
 
-        // --- GRADE COM MATERIAL DE APOIO ---
         function abrirGrade(id) {
-            cursoAtualId = id; const curso = cursosData[id];
-            document.getElementById('grade-titulo').innerText = curso.nome;
+            cursoAtualId = id; const c = cursosData[id];
+            document.getElementById('grade-titulo').innerText = c.nome;
             const lista = document.getElementById('lista-aulas'); lista.innerHTML = "";
-            const aulas = curso.aulas || {}; const keys = Object.keys(aulas);
-            const concluidas = (userData.progresso && userData.progresso[id]) ? Object.values(userData.progresso[id]) : [];
+            const aulas = c.aulas || {}; const keys = Object.keys(aulas);
+            const done = (userData.progresso && userData.progresso[id]) ? Object.values(userData.progresso[id]) : [];
 
             keys.forEach((aId, idx) => {
-                const icon = concluidas.includes(aId) ? "✅" : "⭕";
-                const materialBtn = aulas[aId].material ? 
-                    `<a href="${aulas[aId].material}" target="_blank" class="btn-download" onclick="event.stopPropagation()">📂 Material de Apoio</a>` : "";
-
+                const icon = done.includes(aId) ? "✅" : "⭕";
+                const mat = aulas[aId].material ? `<a href="${aulas[aId].material}" target="_blank" class="btn-download" onclick="event.stopPropagation()">📂 Material Extra</a>` : "";
                 lista.innerHTML += `
-                    <div class="card" style="display:flex; justify-content:space-between; align-items:center">
-                        <div>
-                            <span>${icon} Aula ${idx+1}: ${aulas[aId].nome}</span><br>
-                            ${materialBtn}
+                    <div class="card" style="display:flex; justify-content:space-between; align-items:center; flex-wrap: wrap;">
+                        <div style="flex:1; min-width: 200px;">
+                            <strong>${icon} Aula ${idx+1}: ${aulas[aId].nome}</strong><br>${mat}
                         </div>
-                        <button class="btn btn-success" onclick="assistir('${aId}')">Assistir</button>
+                        <button class="btn btn-success" style="width: auto; margin-top:10px;" onclick="assistir('${aId}')">ASSISTIR</button>
                     </div>`;
             });
 
             const btnP = document.getElementById('btn-fazer-prova');
-            if(keys.length > 0 && concluidas.length >= keys.length) {
+            if(keys.length > 0 && done.length >= keys.length) {
                 btnP.disabled = false; btnP.className = "btn btn-accent";
                 btnP.onclick = () => mostrarProva(id);
-            } else {
-                btnP.disabled = true; btnP.className = "btn btn-disabled";
-            }
-            
+            } else { btnP.disabled = true; btnP.className = "btn btn-disabled"; }
+
             if(userData.notas && userData.notas[id] >= 70) {
-                document.getElementById('btn-cert-area').innerHTML = `<button class="btn btn-success" onclick="verCertificado('${id}')">MEU CERTIFICADO</button>`;
+                document.getElementById('btn-cert-area').innerHTML = `<button class="btn btn-success" onclick="verCertificado('${id}')">VER MEU CERTIFICADO</button>`;
             } else { document.getElementById('btn-cert-area').innerHTML = ""; }
             showTab('tab-grade');
         }
@@ -277,80 +303,83 @@
             document.getElementById('player-titulo').innerText = aula.nome;
             document.getElementById('video-frame').src = aula.url;
             document.getElementById('btn-check-aula').onclick = () => {
-                let progRef = db.ref('usuarios/' + auth.currentUser.uid + '/progresso/' + cursoAtualId);
-                progRef.get().then(snap => {
+                let pRef = db.ref('usuarios/' + auth.currentUser.uid + '/progresso/' + cursoAtualId);
+                pRef.get().then(snap => {
                     let p = snap.val() || []; if(!p.includes(aId)) p.push(aId);
-                    progRef.set(p).then(() => { alert("Aula concluída!"); abrirGrade(cursoAtualId); });
+                    pRef.set(p).then(() => { alert("Aula concluída!"); abrirGrade(cursoAtualId); });
                 });
             };
             showTab('tab-player');
         }
 
-        // --- SALVAR AULA E MATERIAL ---
+        // ADMIN FUNCTIONS
+        function admCriarCurso() {
+            const n = document.getElementById('adm-c-nome').value; 
+            const c = document.getElementById('adm-c-capa').value;
+            if(n && c) db.ref('cursos').push({nome: n, capa: c}).then(()=>alert("Criado!"));
+        }
+
         function admSalvarAula() {
             const cId = document.getElementById('select-cursos-aulas').value;
             const n = document.getElementById('adm-a-nome').value;
             let u = document.getElementById('adm-a-url').value;
             const mat = document.getElementById('adm-a-material').value;
-
-            if(!cId || !n || !u) return alert("Preencha título e link do vídeo!");
-            
+            if(!cId || !n || !u) return alert("Preencha os campos obrigatórios.");
             let idV = u.includes("v=") ? u.split("v=")[1].split("&")[0] : u.split("/").pop();
-            
-            db.ref('cursos/' + cId + '/aulas').push({
-                nome: n, 
-                url: `https://www.youtube.com/embed/${idV}`,
-                material: mat || ""
-            }).then(() => {
-                alert("Aula adicionada!");
-                document.getElementById('adm-a-nome').value = "";
-                document.getElementById('adm-a-url').value = "";
-                document.getElementById('adm-a-material').value = "";
-                listarAulasParaExcluir(cId);
+            db.ref('cursos/'+cId+'/aulas').push({nome:n, url:`https://www.youtube.com/embed/${idV}`, material: mat || ""}).then(()=>{
+                alert("Aula Vinculada!"); listarAulasParaExcluir(cId);
             });
         }
 
-        // --- DEMAIS FUNÇÕES DO SISTEMA ---
-        function listarAulasParaExcluir(cursoId) {
-            const container = document.getElementById('lista-aulas-admin');
-            container.innerHTML = "";
-            if(!cursoId || !cursosData[cursoId] || !cursosData[cursoId].aulas) {
-                container.innerHTML = "<p>Sem aulas cadastradas.</p>";
-                return;
-            }
-            const aulas = cursosData[cursoId].aulas;
+        function listarAulasParaExcluir(cId) {
+            const cont = document.getElementById('lista-aulas-admin'); cont.innerHTML = "";
+            const aulas = (cursosData[cId] && cursosData[cId].aulas) ? cursosData[cId].aulas : {};
             Object.keys(aulas).forEach(aId => {
-                container.innerHTML += `
-                    <div style="display:flex; justify-content:space-between; align-items:center; background:#eee; padding:10px; margin-bottom:5px; border-radius:5px;">
-                        <span>${aulas[aId].nome}</span>
-                        <button class="btn btn-danger" onclick="excluirAula('${cursoId}', '${aId}')">Excluir</button>
-                    </div>`;
+                cont.innerHTML += `<div style="background:#eee; padding:10px; margin-bottom:5px; display:flex; justify-content:space-between;">
+                    <span>${aulas[aId].nome}</span><button class="btn-danger" onclick="excluirAula('${cId}','${aId}')">X</button></div>`;
             });
         }
 
-        function excluirAula(cursoId, aulaId) {
-            if(confirm("Tem certeza que deseja excluir esta aula?")) {
-                db.ref(`cursos/${cursoId}/aulas/${aulaId}`).remove().then(() => {
-                    alert("Aula excluída!");
-                    listarAulasParaExcluir(cursoId);
-                });
-            }
+        function excluirAula(cId, aId) { if(confirm("Excluir?")) db.ref(`cursos/${cId}/aulas/${aId}`).remove().then(()=>listarAulasParaExcluir(cId)); }
+
+        function admSalvarQuestao() {
+            const cId = document.getElementById('select-cursos-provas').value;
+            const q = { pergunta: document.getElementById('adm-q').value, opts: [document.getElementById('opt0').value, document.getElementById('opt1').value, document.getElementById('opt2').value], correta: document.getElementById('adm-correta').value };
+            db.ref('cursos/' + cId + '/questoes').push(q).then(()=>alert("Salvo!"));
+        }
+
+        function mostrarProva(id) {
+            const qs = cursosData[id].questoes; if(!qs) return alert("Sem prova.");
+            const cont = document.getElementById('questoes-container'); cont.innerHTML = "";
+            Object.keys(qs).forEach((qId, idx) => {
+                cont.innerHTML += `<div class="card"><p><strong>${idx+1}. ${qs[qId].pergunta}</strong></p>
+                ${qs[qId].opts.map((o, i) => `<label style="display:block; margin:10px 0;"><input type="radio" name="q${qId}" value="${i}"> ${o}</label>`).join('')}</div>`;
+            });
+            showTab('tab-prova');
+        }
+
+        function corrigirProva() {
+            const qs = cursosData[cursoAtualId].questoes; let ok = 0; const ids = Object.keys(qs);
+            ids.forEach(id => {
+                const s = document.querySelector(`input[name="q${id}"]:checked`);
+                if(s && s.value == qs[id].correta) ok++;
+            });
+            const nota = (ok / ids.length) * 100;
+            db.ref('usuarios/' + auth.currentUser.uid + '/notas/' + cursoAtualId).set(nota).then(() => {
+                alert("Sua Nota: " + nota.toFixed(0) + "%"); abrirGrade(cursoAtualId);
+            });
         }
 
         async function cadastrarAlunoFirebase() {
-            const nome = document.getElementById('new-aluno-nome').value;
-            const email = document.getElementById('new-aluno-email').value;
-            const pass = document.getElementById('new-aluno-pass').value;
-            if(!nome || !email || !pass) return alert("Preencha tudo!");
-            
-            const secondaryApp = firebase.initializeApp(firebaseConfig, "Secondary");
+            const n = document.getElementById('new-aluno-nome').value;
+            const e = document.getElementById('new-aluno-email').value;
+            const p = document.getElementById('new-aluno-pass').value;
+            const secApp = firebase.initializeApp(firebaseConfig, "Secondary");
             try {
-                const userCredential = await secondaryApp.auth().createUserWithEmailAndPassword(email, pass);
-                await db.ref('usuarios/' + userCredential.user.uid).set({ nome, email, role: 'aluno', progresso: {}, notas: {} });
-                alert("Aluno cadastrado!");
-                await secondaryApp.delete();
-                abrirGerenciarAlunos();
-            } catch (e) { alert(e.message); }
+                const res = await secApp.auth().createUserWithEmailAndPassword(e, p);
+                await db.ref('usuarios/' + res.user.uid).set({ nome: n, email: e, role: 'aluno', progresso: {}, notas: {} });
+                alert("Aluno cadastrado com sucesso!"); await secApp.delete(); abrirGerenciarAlunos();
+            } catch (err) { alert(err.message); }
         }
 
         function abrirGerenciarAlunos() {
@@ -364,62 +393,23 @@
             });
         }
 
-        function mostrarProva(id) {
-            const qs = cursosData[id].questoes; if(!qs) return alert("Sem prova cadastrada para este curso.");
-            const cont = document.getElementById('questoes-container'); cont.innerHTML = "";
-            Object.keys(qs).forEach((qId, idx) => {
-                cont.innerHTML += `<div class="card"><p><strong>${idx+1}. ${qs[qId].pergunta}</strong></p>
-                ${qs[qId].opts.map((o, i) => `<label style="display:block"><input type="radio" name="q${qId}" value="${i}"> ${o}</label>`).join('')}</div>`;
-            });
-            showTab('tab-prova');
-        }
-
-        function corrigirProva() {
-            const qs = cursosData[cursoAtualId].questoes; let acertos = 0; const ids = Object.keys(qs);
-            ids.forEach(id => {
-                const sel = document.querySelector(`input[name="q${id}"]:checked`);
-                if(sel && sel.value == qs[id].correta) acertos++;
-            });
-            const nota = (acertos / ids.length) * 100;
-            db.ref('usuarios/' + auth.currentUser.uid + '/notas/' + cursoAtualId).set(nota).then(() => {
-                alert("Sua nota foi: " + nota.toFixed(0) + "%"); abrirGrade(cursoAtualId);
-            });
-        }
-
         function verCertificado(id) {
             document.getElementById('cert-nome-aluno').innerText = userData.nome.toUpperCase();
             document.getElementById('cert-curso-nome').innerText = cursosData[id].nome.toUpperCase();
             showTab('tab-cert');
         }
 
-        function admCriarCurso() {
-            const n = document.getElementById('adm-c-nome').value; const c = document.getElementById('adm-c-capa').value;
-            if(n && c) db.ref('cursos').push({nome: n, capa: c}).then(() => {
-                alert("Curso criado!"); document.getElementById('adm-c-nome').value = ""; document.getElementById('adm-c-capa').value = "";
-            });
-        }
-
-        function admSalvarQuestao() {
-            const cId = document.getElementById('select-cursos-provas').value;
-            const q = { 
-                pergunta: document.getElementById('adm-q').value, 
-                opts: [document.getElementById('opt0').value, document.getElementById('opt1').value, document.getElementById('opt2').value], 
-                correta: document.getElementById('adm-correta').value 
-            };
-            if(!cId || !q.pergunta) return alert("Preencha a questão!");
-            db.ref('cursos/' + cId + '/questoes').push(q).then(() => {
-                alert("Questão salva!");
-                document.getElementById('adm-q').value = "";
-            });
-        }
-
         function renderSelects() {
             const s1 = document.getElementById('select-cursos-aulas'); const s2 = document.getElementById('select-cursos-provas');
-            s1.innerHTML = "<option value=''>Selecione um curso...</option>"; s2.innerHTML = "";
+            s1.innerHTML = "<option value=''>Selecionar...</option>"; s2.innerHTML = "";
             Object.keys(cursosData).forEach(id => { const o = `<option value="${id}">${cursosData[id].nome}</option>`; s1.innerHTML += o; s2.innerHTML += o; });
         }
 
-        function showTab(id) { document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden')); document.getElementById(id).classList.remove('hidden'); }
+        function showTab(id) { 
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden')); 
+            document.getElementById(id).classList.remove('hidden'); 
+            window.scrollTo(0,0);
+        }
     </script>
 </body>
 </html>
